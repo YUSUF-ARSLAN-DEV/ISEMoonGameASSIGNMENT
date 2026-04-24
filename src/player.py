@@ -45,8 +45,8 @@ class Player(pygame.sprite.Sprite):
         #
     def verticalJump(self):
         clicked_buttons = pygame.key.get_pressed()
-        
-        if clicked_buttons[pygame.K_SPACE] and  self.rect.bottom == GROUND_Y :
+        # if it is equal to or above the ground
+        if clicked_buttons[pygame.K_SPACE] and  self.rect.bottom >= GROUND_Y :
             # the character only jump if it is in the ground
             self.on_ground = False 
             self.y_velocity = -5  # veloctiy should only increas when the button is clicked 
