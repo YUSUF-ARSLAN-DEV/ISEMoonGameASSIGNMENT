@@ -4,3 +4,9 @@ Time in air (frames):
 frames = (2 × velocity) / gravity
 So if you want to jump exactly 100px high at gravity = 0.5:
 velocity = √(2 × 0.5 × 100) = √100 = 10
+
+## when implementing detla time - which is time since the last frame or aka time since in motion 
+
+dt  * speed_v 
+
+so distance = dt * speed_v 

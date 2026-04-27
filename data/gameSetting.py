@@ -1,8 +1,10 @@
+import  clock 
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 GRAVITY = 0.5  ; 
 PLAYER_HEIGHT = 32 
 PLAYER_WIDTH = 32
+
 
 
 # Ground threshold accounts for sprite height: bottom = y + PLAYER_HEIGHT

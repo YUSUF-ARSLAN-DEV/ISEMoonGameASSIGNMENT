@@ -1,7 +1,7 @@
 import pygame 
 import src.player 
 import time 
-from data.settings import initial_x_y_position 
+from data.gameSetting import initial_x_y_position 
 
 # basically the game loop 
 check = True 
