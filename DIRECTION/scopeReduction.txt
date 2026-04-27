@@ -1,0 +1,28 @@
+Core Game (2 levels, not 10)
+Two distinct moon environments, each with unique layout, enemies, and challenges. More than 2 is wasted effort — rubric says "at least two."
+
+Special Effects — prioritize this, it's 20 marks
+
+Particle effects: dust on landing, oxygen leak particles, pickaxe impact sparks
+Glowing effects: barrier activation, enemy death
+Screen shake on damage
+Animated sprites (not static images)
+Transition effects between levels
+
+
+Audio — required, not optional
+
+Background music per level (different mood)
+Sound effects: footstep, jump, hit, death, pickup, door open
+Free assets from freesound.org or itch.io
+
+
+Mechanics (enough to show logic and event-driven gameplay)
+
+Movement + jumping
+Oxygen system (depletes, refills at checkpoints)
+Pickaxe to break walls
+1-2 enemy types with basic AI
+Checkpoint system
+Shop with 2-3 items
+3 endings based on performance

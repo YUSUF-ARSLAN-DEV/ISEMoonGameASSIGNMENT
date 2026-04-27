@@ -1,0 +1,82 @@
+Suggest Realistic development plan 
+
+PHASE 1 — Player Foundation
+✅ pygame setup, window, game loop
+✅ Player class, movement, jumping
+✅ Gravity, boundaries
+⬜ Delta time (frame-rate independent physics)
+⬜ Animated sprite (walking, jumping, idle cycles)
+⬜ Clean settings file (you're close)
+
+PHASE 2 — World & Level Loading
+⬜ Tilemap system — load level from CSV/text grid
+⬜ Tile class — wall, floor, empty
+⬜ Render tilemap to screen
+⬜ Proper collision — player vs tiles (top, bottom, left, right)
+⬜ Camera that follows player
+⬜ Level 1 designed and playable
+
+PHASE 3 — Core Systems
+⬜ Oxygen bar — depletes over time, shown on HUD
+⬜ Oxygen refill at checkpoints
+⬜ Checkpoint system — respawn here on death
+⬜ Health system — player takes damage, dies
+⬜ HUD — oxygen bar, health display
+⬜ Death and respawn logic
+
+PHASE 4 — Enemies
+⬜ Base Enemy class
+⬜ Melee enemy — patrols, chases player on sight, attacks
+⬜ Ranged enemy — shoots projectile toward player
+⬜ Enemy health, takes damage, death animation
+⬜ Projectile class
+
+PHASE 5 — Combat & Interaction
+⬜ Pickaxe mechanic — break specific wall tiles
+⬜ Player attack hitbox
+⬜ Weapons — basic melee swing
+⬜ Shop NPC — dialogue box, buy items with currency
+⬜ Currency drops from enemies
+⬜ Inventory (minimal — just equipped weapon + items)
+
+PHASE 6 — Special Effects (20 marks)
+⬜ Particle system — reusable class for any particle effect
+⬜ Dust particles on landing
+⬜ Impact sparks on pickaxe hit
+⬜ Enemy death burst
+⬜ Oxygen leak particles when low
+⬜ Barrier activation glow effect
+⬜ Screen shake on damage
+⬜ Level transition effect
+
+PHASE 7 — Audio
+⬜ Background music per level (loop)
+⬜ Jump sound
+⬜ Footstep sound
+⬜ Hit/damage sound
+⬜ Enemy death sound
+⬜ Pickup sound
+⬜ Low oxygen warning sound
+⬜ pygame.mixer setup
+
+PHASE 8 — Level 2
+⬜ New tilemap layout
+⬜ New background/environment art
+⬜ Harder enemy placement
+⬜ New moon theme (different gravity value, different currency)
+⬜ Mini boss if time permits
+
+PHASE 9 — Menus & Endings
+⬜ Start screen
+⬜ Pause menu
+⬜ Game over screen
+⬜ Win screen
+⬜ 3 endings based on performance (good, neutral, bad)
+
+PHASE 10 — Polish & Submission
+⬜ Replace all placeholder blobs with real sprites
+⬜ Background art for both levels
+⬜ Bug fixing pass
+⬜ Performance check
+⬜ Test on fresh machine
+⬜ Zip and submit
