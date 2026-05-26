@@ -5,27 +5,38 @@ WINDOW_HEIGHT = 600
 FPS           = 60
 
 # ─── Tile ─────────────────────────────────────────────────────────────────────
-TILE_SIZE     = 48          # pixels per tile cell
-LEVEL_COLS    = 40          # tiles wide per level
+TILE_SIZE     = 48
+LEVEL_COLS    = 40
 
 # ─── Physics ──────────────────────────────────────────────────────────────────
-GRAVITY       = 900         # pixels/s²
-PLAYER_SPEED  = 200         # pixels/s (horizontal)
-JUMP_VELOCITY = -420        # pixels/s  (negative = upward)
-TERMINAL_VEL  = 800         # max fall speed
+GRAVITY       = 900
+PLAYER_SPEED  = 200
+JUMP_VELOCITY = -420
+TERMINAL_VEL  = 800
 
 # ─── Player ───────────────────────────────────────────────────────────────────
 PLAYER_WIDTH          = 28
 PLAYER_HEIGHT         = 40
 PLAYER_MAX_HEALTH     = 3
 PLAYER_MAX_OXYGEN     = 100
-OXYGEN_DRAIN_RATE     = 4   # units per second
-OXYGEN_REFILL_AMT     = 55  # gained from one oxygen pickup
-INVINCIBLE_DURATION   = 1.5 # seconds of invincibility after being hit
+OXYGEN_DRAIN_RATE     = 4
+OXYGEN_REFILL_AMT     = 55
+INVINCIBLE_DURATION   = 1.5
 
 # ─── Enemy ────────────────────────────────────────────────────────────────────
-ENEMY_SPEED   = 75          # pixels/s
-ENEMY_PATROL  = 110         # pixels from spawn before turning
+ENEMY_SPEED   = 75
+ENEMY_PATROL  = 110
+
+# ─── Comet (motion-tracking hazard) ──────────────────────────────────────────
+# The comet continuously recalculates its direction toward the player each
+# frame — normalise(target - self) * force — this is the "motion tracking"
+# technique named in the assignment overview.
+COMET_SPAWN_INTERVAL  = 18   # seconds between spawns
+COMET_STEER_FORCE     = 380  # px/s² steering acceleration toward player
+COMET_MAX_SPEED       = 500  # px/s terminal speed
+COMET_RADIUS          = 14   # collision / draw radius
+COMET_DAMAGE_RADIUS   = 90   # px from impact that hurts the player
+COMET_FRACTURE_RADIUS = 100  # px from impact where tiles are removed
 
 # ─── Colors ───────────────────────────────────────────────────────────────────
 BLACK      = (0,   0,   0)
@@ -41,14 +52,14 @@ ORANGE     = (255, 140, 0)
 PURPLE     = (140, 80,  200)
 
 # ─── Level 1 palette (Moon Surface) ──────────────────────────────────────────
-LVL1_BG_COLOR    = (8,   5,  22)    # near-black starfield
-LVL1_TILE_COLOR  = (88,  90, 102)   # gray moon rock
-LVL1_TILE_ACCENT = (55,  57,  68)   # darker edge highlight
+LVL1_BG_COLOR    = (8,   5,  22)
+LVL1_TILE_COLOR  = (88,  90, 102)
+LVL1_TILE_ACCENT = (55,  57,  68)
 
 # ─── Level 2 palette (Lunar Cavern) ──────────────────────────────────────────
-LVL2_BG_COLOR    = (5,   8,  38)    # deep space blue
-LVL2_TILE_COLOR  = (65,  38,  92)   # purple crystal rock
-LVL2_TILE_ACCENT = (42,  22,  60)   # dark edge
+LVL2_BG_COLOR    = (5,   8,  38)
+LVL2_TILE_COLOR  = (65,  38,  92)
+LVL2_TILE_ACCENT = (42,  22,  60)
 
 # ─── Tilemap legend ───────────────────────────────────────────────────────────
 #   X = solid tile       P = player spawn
@@ -56,33 +67,33 @@ LVL2_TILE_ACCENT = (42,  22,  60)   # dark edge
 #   > = level exit
 
 LEVEL_1_MAP = [
-    "                                        ",   # row  0
-    "                                        ",   # row  1
-    "        XX                              ",   # row  2
-    "                     XX                 ",   # row  3
-    "                                        ",   # row  4
-    "   XXXXX    XX             XXXXX        ",   # row  5
-    "                                        ",   # row  6
-    "  XXX                            XXX    ",   # row  7
-    "  E                     E               ",   # row  8
-    "  XXXXX    XXXXXX        XXXXXXX  O     ",   # row  9
-    "                                  X     ",   # row 10
-    "P                                    >  ",   # row 11
-    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",   # row 12  (ground)
+    "                                        ",
+    "                                        ",
+    "        XX                              ",
+    "                     XX                 ",
+    "                                        ",
+    "   XXXXX    XX             XXXXX        ",
+    "                                        ",
+    "  XXX                            XXX    ",
+    "  E                     E               ",
+    "  XXXXX    XXXXXX        XXXXXXX  O     ",
+    "                                  X     ",
+    "P                                    >  ",
+    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
 ]
 
 LEVEL_2_MAP = [
-    "                                        ",   # row  0
-    "   XX                         XX        ",   # row  1
-    "                                        ",   # row  2
-    "       XXXXX           XXXXX            ",   # row  3
-    "   E                               E    ",   # row  4
-    "   XX    XXX           XXX         XX   ",   # row  5
-    "                                        ",   # row  6
-    "     XXXXX    E     XXXXXX              ",   # row  7
-    "                                   O    ",   # row  8
-    "   XXX      XXXXX         XXXXX    X    ",   # row  9
-    "                                        ",   # row 10
-    "P                                    >  ",   # row 11
-    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",   # row 12  (ground)
+    "                                        ",
+    "   XX                         XX        ",
+    "                                        ",
+    "       XXXXX           XXXXX            ",
+    "   E                               E    ",
+    "   XX    XXX           XXX         XX   ",
+    "                                        ",
+    "     XXXXX    E     XXXXXX              ",
+    "                                   O    ",
+    "   XXX      XXXXX         XXXXX    X    ",
+    "                                        ",
+    "P                                    >  ",
+    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
 ]

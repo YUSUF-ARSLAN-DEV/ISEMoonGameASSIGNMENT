@@ -12,20 +12,26 @@ Controls
 
 Rubric checklist
 ----------------
-  ✓ Moon theme (surface + cavern levels, Earth in background, astronaut player)
+  ✓ Moon theme (surface + cavern levels, Earth in sky, astronaut player)
   ✓ Two levels with distinct environments and unique challenges
   ✓ Sprite animation (idle / walk / jump / hurt states, per-frame redrawn)
   ✓ Particle effects (dust on land, sparks on damage/pickup, death burst,
-                       oxygen-leak bubbles, level-complete confetti)
-  ✓ Event-driven gameplay (oxygen depletion, enemy AI, stomping, pickups, exit)
-  ✓ Visual special effects (screen shake on damage, pulsing glow on items,
-                              parallax starfield, particle system)
-  ✓ Audio special effects (synthesised jump, hurt, pickup, death, alert, music)
+                       oxygen-leak bubbles, comet trail, comet explosion,
+                       level-complete confetti)
+  ✓ Motion tracking  — comet recalculates direction to player every frame
+                       (vector normalisation → steering force → velocity)
+  ✓ Event-driven gameplay (oxygen depletion, enemy AI, stomping,
+                            comet impact + floor fracture, pickups, exit)
+  ✓ Visual special effects (screen shake on damage/comet, pulsing glow on
+                              items, parallax starfield, particle system)
+  ✓ Audio special effects (synthesised jump, hurt, pickup, enemy death,
+                            explosion, O2 alert, background music)
   ✓ Background music per level (ambient drone, different tone per level)
 """
 
 import pygame
 import sys
+import math
 import random
 from data.gameSetting import *
 from src.player    import Player
@@ -33,6 +39,7 @@ from src.enemy     import Enemy
 from src.level     import Level
 from src.camera    import Camera
 from src.particles import ParticleSystem
+from src.comet     import Comet
 from src.hud       import draw_hud
 from src.audio     import AudioManager
 
@@ -44,8 +51,9 @@ STATE_DEAD       = 'dead'
 STATE_WIN        = 'win'
 
 
-# ─── Helper: draw semi-transparent overlay with centred text ──────────────────
-def _draw_overlay(surface, text, color, font, sub_text='', sub_font=None, sub_color=None):
+# ─── Helper: semi-transparent overlay with centred text ───────────────────────
+def _draw_overlay(surface, text, color, font,
+                  sub_text='', sub_font=None, sub_color=None):
     overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 170))
     surface.blit(overlay, (0, 0))
@@ -59,7 +67,7 @@ def _draw_overlay(surface, text, color, font, sub_text='', sub_font=None, sub_co
                             WINDOW_HEIGHT // 2 + 20))
 
 
-# ─── Helper: draw the main menu screen ───────────────────────────────────────
+# ─── Helper: main menu screen ─────────────────────────────────────────────────
 def _draw_menu(surface, font_big, font_small, elapsed):
     surface.fill(LVL1_BG_COLOR)
 
@@ -69,35 +77,29 @@ def _draw_menu(surface, font_big, font_small, elapsed):
         y = (i * 83  + 30) % (WINDOW_HEIGHT - 60)
         pygame.draw.circle(surface, WHITE, (x, y), 1)
 
-    # Large moon
-    import math
+    # Gently floating moon
     moon_x = WINDOW_WIDTH // 2
-    moon_y = 150 + int(6 * math.sin(elapsed * 0.8))   # gentle float
+    moon_y = 148 + int(6 * math.sin(elapsed * 0.8))
     pygame.draw.circle(surface, (205, 208, 220), (moon_x, moon_y), 80)
-    # Craters
     for cx, cy, cr in [(moon_x - 25, moon_y - 15, 12),
                         (moon_x + 28, moon_y + 18,  9),
                         (moon_x - 5,  moon_y + 30,  6)]:
         pygame.draw.circle(surface, (175, 178, 190), (cx, cy), cr)
         pygame.draw.circle(surface, (195, 198, 210), (cx, cy), cr, 1)
 
-    # Title
-    title = font_big.render("LUNAR  ESCAPE", True, (218, 228, 255))
-    surface.blit(title, (WINDOW_WIDTH // 2 - title.get_width() // 2, 270))
-
+    title  = font_big.render("LUNAR  ESCAPE", True, (218, 228, 255))
     prompt = font_small.render("Press  SPACE  or  ENTER  to  Start", True, (155, 165, 205))
+    ctrl   = font_small.render("Arrow Keys / WASD — Move & Jump      ESC — Quit", True, (90, 95, 130))
+    tip    = font_small.render("Stomp enemies  |  Collect O2 canisters  |  Dodge comets!", True, (70, 75, 110))
+
+    surface.blit(title,  (WINDOW_WIDTH // 2 - title.get_width()  // 2, 270))
     surface.blit(prompt, (WINDOW_WIDTH // 2 - prompt.get_width() // 2, 345))
-
-    ctrl = font_small.render("Arrow Keys / WASD — Move & Jump      ESC — Quit", True, (90, 95, 130))
-    surface.blit(ctrl, (WINDOW_WIDTH // 2 - ctrl.get_width() // 2, 400))
-
-    tip = font_small.render("Stomp enemies from above  |  Collect O2 canisters to survive", True, (70, 75, 110))
-    surface.blit(tip, (WINDOW_WIDTH // 2 - tip.get_width() // 2, 440))
+    surface.blit(ctrl,   (WINDOW_WIDTH // 2 - ctrl.get_width()   // 2, 395))
+    surface.blit(tip,    (WINDOW_WIDTH // 2 - tip.get_width()    // 2, 440))
 
 
-# ─── Helper: set up a fresh level ────────────────────────────────────────────
+# ─── Helper: set up a fresh level with all objects ────────────────────────────
 def _load_level(level_num, audio):
-    """Instantiate Level, Player, Enemies, Camera, and ParticleSystem."""
     tilemap = LEVEL_1_MAP if level_num == 1 else LEVEL_2_MAP
     level   = Level(tilemap, level_num)
     camera  = Camera()
@@ -105,17 +107,17 @@ def _load_level(level_num, audio):
     all_sprites = pygame.sprite.Group()
     player      = Player(level.player_spawn, all_sprites)
 
-    enemies = []
-    for ex, ey in level.enemy_spawns:
-        enemies.append(Enemy(ex, ey, all_sprites))
+    enemies = [Enemy(ex, ey, all_sprites) for ex, ey in level.enemy_spawns]
 
-    particles = ParticleSystem()
+    particles   = ParticleSystem()
+    comets      = []
+    comet_timer = 0.0
+
     audio.start_music(level_num)
+    return level, camera, player, enemies, particles, comets, comet_timer
 
-    return level, camera, player, enemies, particles
 
-
-# ─── Main entry point ─────────────────────────────────────────────────────────
+# ─── Main ─────────────────────────────────────────────────────────────────────
 def main():
     pygame.init()
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -128,29 +130,29 @@ def main():
 
     audio = AudioManager()
 
-    # ── Game state variables ──────────────────────────────────────────────────
-    state          = STATE_MENU
-    current_level  = 1
-    elapsed        = 0.0    # total time — drives glow/pulse animations
-    shake_time     = 0.0    # remaining seconds of screen shake
-    trans_timer    = 0.0    # countdown for level-transition overlay
+    # ── State variables ───────────────────────────────────────────────────────
+    state         = STATE_MENU
+    current_level = 1
+    elapsed       = 0.0    # drives glow/pulse animations
+    shake_time    = 0.0    # remaining seconds of screen shake
+    shake_mag     = 6      # current shake magnitude
+    trans_timer   = 0.0
 
     level = camera = player = enemies = particles = None
+    comets      = []
+    comet_timer = 0.0
 
     # ── Game loop ─────────────────────────────────────────────────────────────
     while True:
         dt = clock.tick(FPS) / 1000.0
-        dt = min(dt, 0.05)   # prevent spiral-of-death on slow frames
+        dt = min(dt, 0.05)
         elapsed += dt
 
-        # ── Global event handling ─────────────────────────────────────────────
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                pygame.quit()
-                sys.exit()
+                pygame.quit(); sys.exit()
 
         keys = pygame.key.get_pressed()
 
@@ -161,7 +163,8 @@ def main():
             _draw_menu(screen, font_big, font_small, elapsed)
             if keys[pygame.K_SPACE] or keys[pygame.K_RETURN]:
                 current_level = 1
-                level, camera, player, enemies, particles = _load_level(current_level, audio)
+                level, camera, player, enemies, particles, comets, comet_timer = \
+                    _load_level(current_level, audio)
                 state = STATE_PLAYING
 
         # ══════════════════════════════════════════════════════════════════════
@@ -169,24 +172,25 @@ def main():
         # ══════════════════════════════════════════════════════════════════════
         elif state == STATE_PLAYING:
 
-            # ── Update ────────────────────────────────────────────────────────
+            # ── Update player ─────────────────────────────────────────────────
             player.update(dt, level.tiles)
             camera.follow(player.rect)
 
+            # ── Update enemies ────────────────────────────────────────────────
             for enemy in enemies:
                 enemy.update(dt, level.tiles, player.rect)
 
+            # ── Update particles ──────────────────────────────────────────────
             particles.update(dt)
 
-            # ── Dust on landing ───────────────────────────────────────────────
+            # ── Dust cloud on landing ─────────────────────────────────────────
             if player.just_landed:
                 particles.emit_dust(player.rect.centerx, player.rect.bottom)
 
-            # ── Oxygen-low particle effect ────────────────────────────────────
+            # ── Oxygen-low visual + audio warning ────────────────────────────
             if player.oxygen < 25 and int(elapsed * 6) % 2 == 0:
                 particles.emit_oxygen_leak(player.rect.centerx, player.rect.top)
-                # Beep warning every ~1 second
-                if int(elapsed * 1) % 2 == 0:
+                if int(elapsed) % 2 == 0:
                     audio.play('low_oxygen')
 
             # ── Player ↔ Enemy collision ──────────────────────────────────────
@@ -196,7 +200,6 @@ def main():
                 if not player.rect.colliderect(enemy.rect):
                     continue
 
-                # Stomp: player is falling and their feet are near the enemy's head
                 stomp = (
                     player.vy > 50 and
                     player.rect.bottom <= enemy.rect.centery + 12 and
@@ -204,26 +207,19 @@ def main():
                 )
                 if stomp:
                     enemy.alive_flag = False
-                    # ── Death-burst special effect ────────────────────────────
-                    particles.emit_death_burst(
-                        enemy.rect.centerx, enemy.rect.centery
-                    )
+                    particles.emit_death_burst(enemy.rect.centerx, enemy.rect.centery)
                     audio.play('enemy_death')
-                    player.vy = -320   # bounce player upward
+                    player.vy = -320
                 else:
-                    # Lateral contact → damage
                     if player.take_damage():
-                        # ── Spark special effect on damage ────────────────────
-                        particles.emit_sparks(
-                            player.rect.centerx, player.rect.centery
-                        )
+                        particles.emit_sparks(player.rect.centerx, player.rect.centery)
                         audio.play('hurt')
-                        shake_time = 0.30   # trigger screen shake
+                        shake_time = 0.28
+                        shake_mag  = 6
 
-            # Remove dead enemies
             enemies = [e for e in enemies if e.alive_flag]
 
-            # ── Oxygen-canister pickup ────────────────────────────────────────
+            # ── Oxygen canister pickup ────────────────────────────────────────
             for oxy in level.oxygen_rects[:]:
                 if player.rect.colliderect(oxy):
                     player.refill_oxygen()
@@ -233,9 +229,7 @@ def main():
 
             # ── Exit portal ───────────────────────────────────────────────────
             if level.exit_rect and player.rect.colliderect(level.exit_rect):
-                particles.emit_level_complete(
-                    player.rect.centerx, player.rect.centery
-                )
+                particles.emit_level_complete(player.rect.centerx, player.rect.centery)
                 audio.play('level_complete')
                 if current_level == 1:
                     trans_timer = 1.8
@@ -244,27 +238,79 @@ def main():
                     audio.stop_music()
                     state = STATE_WIN
 
+            # ══ COMET SYSTEM ══════════════════════════════════════════════════
+            #
+            # Spawning
+            # --------
+            comet_timer += dt
+            if comet_timer >= COMET_SPAWN_INTERVAL:
+                comet_timer = 0.0
+                # Spawn within the visible screen in world space
+                spawn_x = camera.offset_x + random.randint(60, WINDOW_WIDTH - 60)
+                comets.append(Comet(spawn_x, camera.offset_x))
+
+            # Update + collision
+            for comet in comets:
+                comet.update(dt, player.rect, level.tiles, particles)
+
+                # On explosion this frame:
+                if comet.exploded:
+                    audio.play('explosion')
+
+                    # ── Large screen shake on impact ──────────────────────────
+                    shake_time = 0.55
+                    shake_mag  = 12
+
+                    # ── Floor fracture: remove tiles near the impact ──────────
+                    # This is the "comet collision and floor fracture" mechanic
+                    # described in the assignment narrative storyboard section.
+                    ix, iy = comet.impact_x, comet.impact_y
+                    level.tiles = [
+                        t for t in level.tiles
+                        if math.dist((t.centerx, t.centery), (ix, iy))
+                           > COMET_FRACTURE_RADIUS
+                    ]
+
+                    # ── Damage player if close to impact ──────────────────────
+                    pdist = math.dist(
+                        (player.rect.centerx, player.rect.centery),
+                        (ix, iy)
+                    )
+                    if pdist <= COMET_DAMAGE_RADIUS:
+                        if player.take_damage():
+                            particles.emit_sparks(
+                                player.rect.centerx, player.rect.centery
+                            )
+                            audio.play('hurt')
+
+            # Remove dead comets
+            comets = [c for c in comets if c.alive or not c.exploded]
+            # ══════════════════════════════════════════════════════════════════
+
             # ── Death check ───────────────────────────────────────────────────
             if not player.alive or player.rect.top > WINDOW_HEIGHT + 50:
                 audio.stop_music()
                 state = STATE_DEAD
 
-            # ── Compute screen-shake offset ───────────────────────────────────
+            # ── Screen-shake offset ───────────────────────────────────────────
             sx = sy = 0
             if shake_time > 0:
                 shake_time -= dt
-                sx = random.randint(-6,  6)
-                sy = random.randint(-4,  4)
+                sx = random.randint(-shake_mag, shake_mag)
+                sy = random.randint(-shake_mag // 2, shake_mag // 2)
 
             # ── Draw ──────────────────────────────────────────────────────────
             level.draw_background(screen, camera.offset_x)
-            level.draw_tiles(screen, camera.offset_x + sx)
-            level.draw_items(screen, camera.offset_x + sx, elapsed)
+            level.draw_tiles(screen,      camera.offset_x + sx)
+            level.draw_items(screen,      camera.offset_x + sx, elapsed)
 
-            # Player (apply shake + camera offset)
+            # Comets (behind player, in front of tiles)
+            for comet in comets:
+                comet.draw(screen, camera.offset_x + sx)
+
+            # Player
             pr = camera.apply(player.rect)
-            pr.x += sx
-            pr.y += sy
+            pr.x += sx;  pr.y += sy
             screen.blit(player.image, pr)
 
             # Enemies
@@ -272,17 +318,16 @@ def main():
                 er = camera.apply(enemy.rect)
                 screen.blit(enemy.image, er)
 
-            # Particles drawn in world space
+            # Particles (world-space, pass camera offset)
             particles.draw(screen, camera.offset_x)
 
-            # HUD always drawn last so it stays on top
+            # HUD on top of everything
             draw_hud(screen, player, current_level)
 
         # ══════════════════════════════════════════════════════════════════════
-        # LEVEL TRANSITION  (brief "Level 2" overlay between levels)
+        # LEVEL TRANSITION
         # ══════════════════════════════════════════════════════════════════════
         elif state == STATE_TRANSITION:
-            # Keep rendering the previous level frozen in the background
             level.draw_background(screen, camera.offset_x)
             level.draw_tiles(screen, camera.offset_x)
             particles.draw(screen, camera.offset_x)
@@ -291,7 +336,8 @@ def main():
             trans_timer -= dt
             if trans_timer <= 0:
                 current_level = 2
-                level, camera, player, enemies, particles = _load_level(current_level, audio)
+                level, camera, player, enemies, particles, comets, comet_timer = \
+                    _load_level(current_level, audio)
                 state = STATE_PLAYING
 
         # ══════════════════════════════════════════════════════════════════════
@@ -300,11 +346,11 @@ def main():
         elif state == STATE_DEAD:
             screen.fill(BLACK)
             _draw_overlay(screen, "YOU  DIED", RED, font_big,
-                          "Press  R  to retry   |   ESC  to quit",
-                          font_small)
+                          "Press  R  to retry   |   ESC  to quit", font_small)
             if keys[pygame.K_r]:
                 current_level = 1
-                level, camera, player, enemies, particles = _load_level(current_level, audio)
+                level, camera, player, enemies, particles, comets, comet_timer = \
+                    _load_level(current_level, audio)
                 state = STATE_PLAYING
 
         # ══════════════════════════════════════════════════════════════════════
@@ -317,7 +363,8 @@ def main():
                           font_small)
             if keys[pygame.K_r]:
                 current_level = 1
-                level, camera, player, enemies, particles = _load_level(current_level, audio)
+                level, camera, player, enemies, particles, comets, comet_timer = \
+                    _load_level(current_level, audio)
                 audio.start_music(1)
                 state = STATE_PLAYING
 
