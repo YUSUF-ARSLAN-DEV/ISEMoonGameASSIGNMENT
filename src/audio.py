@@ -40,7 +40,7 @@ _SYNTH_FALLBACKS = {
 }
 
 
-def _make_tone(freq, duration, volume=0.35, shape='sine'):
+def _make_tone(freq, duration, volume=0.80, shape='sine'):
     if not _HAS_NUMPY:
         return None
     n = int(SAMPLE_RATE * duration)
@@ -82,6 +82,7 @@ class AudioManager:
     def __init__(self):
         try:
             pygame.mixer.init(frequency=SAMPLE_RATE, size=-16, channels=2, buffer=512)
+            pygame.mixer.music.set_volume(1.0)
         except Exception:
             pass
         self._music_channel = None
@@ -98,9 +99,11 @@ class AudioManager:
                 if os.path.exists(path):
                     try:
                         snd = pygame.mixer.Sound(path)
-                        vol_map = {'footstep': 0.35, 'low_oxygen': 0.70,
-                                   'oxygen_50': 0.70, 'explosion': 0.80}
-                        snd.set_volume(vol_map.get(name, 0.65))
+                        vol_map = {'footstep': 0.65, 'low_oxygen': 1.0,
+                                   'oxygen_50': 1.0,  'explosion': 1.0,
+                                   'jump': 1.0, 'hurt': 1.0, 'land': 0.85,
+                                   'enemy_death': 1.0, 'pickup': 1.0}
+                        snd.set_volume(vol_map.get(name, 1.0))
                     except Exception:
                         snd = None
             if snd is None and name in _SYNTH_FALLBACKS:

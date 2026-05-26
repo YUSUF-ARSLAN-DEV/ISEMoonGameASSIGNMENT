@@ -1,3 +1,4 @@
+import os
 import pygame
 import sys
 import math
@@ -17,6 +18,30 @@ STATE_PLAYING    = 'playing'
 STATE_TRANSITION = 'transition'
 STATE_DEAD       = 'dead'
 STATE_WIN        = 'win'
+
+_FONT_PATH = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), 'assests', 'sprites',
+                 'SimplePixelArtUIpack', 'SimplePixelArtUIpack',
+                 'fonts', 'font 1', 'pixelfont.ttf')
+)
+
+
+def _make_fonts(big_size=50, mid_size=34, small_size=20):
+    """Return (font_big, font_mid, font_small) using pixel TTF when available."""
+    if os.path.exists(_FONT_PATH):
+        try:
+            return (
+                pygame.font.Font(_FONT_PATH, big_size),
+                pygame.font.Font(_FONT_PATH, mid_size),
+                pygame.font.Font(_FONT_PATH, small_size),
+            )
+        except Exception:
+            pass
+    return (
+        pygame.font.SysFont("Arial", big_size,   bold=True),
+        pygame.font.SysFont("Arial", mid_size,   bold=True),
+        pygame.font.SysFont("Arial", small_size),
+    )
 
 
 def _draw_overlay(surface, text, color, font, sub_text='', sub_font=None, sub_color=None):
@@ -76,9 +101,7 @@ def main():
     pygame.display.set_caption(TITLE)
     clock  = pygame.time.Clock()
 
-    font_big   = pygame.font.SysFont("Arial", 50, bold=True)
-    font_mid   = pygame.font.SysFont("Arial", 34, bold=True)
-    font_small = pygame.font.SysFont("Arial", 20)
+    font_big, font_mid, font_small = _make_fonts()
 
     audio = AudioManager()
 
@@ -88,8 +111,8 @@ def main():
     shake_time      = 0.0
     shake_mag       = 6
     trans_timer     = 0.0
-    footstep_timer  = 0.0
-    oxygen_warned50 = False
+    footstep_timer    = 0.0
+    oxygen_beep_timer = 0.0
 
     level = camera = player = enemies = particles = None
     comets      = []
@@ -115,7 +138,7 @@ def main():
                 current_level = 1
                 level, camera, player, enemies, particles, comets, comet_timer = \
                     _load_level(current_level, audio)
-                oxygen_warned50 = False
+                oxygen_beep_timer = 0.0
                 state = STATE_PLAYING
 
         # ── PLAYING ───────────────────────────────────────────────────────────
@@ -141,16 +164,28 @@ def main():
             else:
                 footstep_timer = 0.0
 
-            # Oxygen 50% one-shot warning
-            if player.oxygen < 50 and not oxygen_warned50:
-                oxygen_warned50 = True
-                audio.play('oxygen_50')
+            # Jump sound — fires exactly on the frame the player leaves the ground
+            if player.just_jumped:
+                audio.play('jump')
 
-            # Oxygen critical: visual bubbles + repeating beep
-            if player.oxygen < 25 and int(elapsed * 6) % 2 == 0:
-                particles.emit_oxygen_leak(player.rect.centerx, player.rect.top)
-                if int(elapsed) % 2 == 0:
+            # Oxygen warning system — timer-driven so beeps repeat reliably
+            oxygen_beep_timer += dt
+            if player.oxygen <= 0:
+                pass   # suffocation handled in player.update
+            elif player.oxygen < 25:
+                # Critical: cyan bubbles + urgent beep every 1.2 s
+                if int(elapsed * 6) % 2 == 0:
+                    particles.emit_oxygen_leak(player.rect.centerx, player.rect.top)
+                if oxygen_beep_timer >= 1.2:
+                    oxygen_beep_timer = 0.0
                     audio.play('low_oxygen')
+            elif player.oxygen < 50:
+                # Warning zone: repeat the 50% alarm every 3 s
+                if oxygen_beep_timer >= 3.0:
+                    oxygen_beep_timer = 0.0
+                    audio.play('oxygen_50')
+            else:
+                oxygen_beep_timer = 0.0   # above 50% — reset so warning fires promptly if it drops again
 
             # Player <-> Enemy
             for enemy in enemies[:]:
@@ -183,7 +218,7 @@ def main():
                     level.oxygen_rects.remove(oxy)
                     particles.emit_sparks(oxy.centerx, oxy.centery, count=8)
                     audio.play('pickup')
-                    oxygen_warned50 = False   # reset so warning fires again if O2 drops
+                    oxygen_beep_timer = 0.0   # restart warning cadence after refill
 
             # Exit portal
             if level.exit_rect and player.rect.colliderect(level.exit_rect):
@@ -267,7 +302,7 @@ def main():
                 current_level = 2
                 level, camera, player, enemies, particles, comets, comet_timer = \
                     _load_level(current_level, audio)
-                oxygen_warned50 = False
+                oxygen_beep_timer = 0.0
                 state = STATE_PLAYING
 
         # ── DEAD ──────────────────────────────────────────────────────────────
@@ -279,7 +314,7 @@ def main():
                 current_level = 1
                 level, camera, player, enemies, particles, comets, comet_timer = \
                     _load_level(current_level, audio)
-                oxygen_warned50 = False
+                oxygen_beep_timer = 0.0
                 state = STATE_PLAYING
 
         # ── WIN ───────────────────────────────────────────────────────────────
@@ -291,7 +326,7 @@ def main():
                 current_level = 1
                 level, camera, player, enemies, particles, comets, comet_timer = \
                     _load_level(current_level, audio)
-                oxygen_warned50 = False
+                oxygen_beep_timer = 0.0
                 audio.start_music(1)
                 state = STATE_PLAYING
 
