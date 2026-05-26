@@ -1,0 +1,127 @@
+
+<canvas id="c" width="700" height="325" style="display:block;margin:0 auto;image-rendering:pixelated;image-rendering:crisp-edges;"></canvas>
+<script>
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const SC=4, SZ=32, MCX=15.5, MCY=15.5, MR=13;
+
+const craters = [{cx:9,cy:9,r:3.2},{cx:21,cy:11,r:2.0},{cx:13,cy:22,r:1.8},{cx:24,cy:22,r:1.2}];
+
+function moonCol(x,y) {
+  const s=(x-MCX)/MR;
+  if(s<-0.4) return '#EEEEDD';
+  if(s<0.2)  return '#DDDDC8';
+  return '#C8C8B4';
+}
+
+function craterCol(x,y) {
+  for(const cr of craters) {
+    const d=Math.sqrt((x-cr.cx)**2+(y-cr.cy)**2);
+    if(d<=cr.r) return '#9E9E8A';
+    if(d<=cr.r+1.2) {
+      const a=Math.atan2(y-cr.cy,x-cr.cx);
+      if(a<-0.3||a>Math.PI-0.3) return '#F4F4E4';
+    }
+  }
+  return null;
+}
+
+const seeds=[[24,24],[22,25],[25,20],[20,26],[26,17]];
+function corruptVal(x,y) {
+  let m=Infinity;
+  for(const [sx,sy] of seeds) { const d=Math.sqrt((x-sx)**2+(y-sy)**2); if(d<m) m=d; }
+  let v = m/24;
+  v += 0.13*(Math.sin(x*2.3+y*1.7)*Math.cos(y*2.1-x*1.3));
+  v += 0.07*(Math.sin(x*0.9-y*3.1));
+  return Math.max(0, Math.min(1.05, v));
+}
+
+function corruptRGB(cv2, thr) {
+  if(cv2>thr) return null;
+  const depth=Math.min(1,(thr-cv2)/Math.max(0.01,thr));
+  if(depth<0.12) return [210,60,255];
+  if(depth<0.30) return [130,10,210];
+  if(depth<0.55) return [60,0,110];
+  if(depth<0.78) return [22,0,50];
+  return [5,0,14];
+}
+
+const leftEye  =[[11,12],[12,12],[11,13],[12,13]];
+const rightEye =[[19,12],[20,12],[19,13],[20,13]];
+const allEye   =[...leftEye,...rightEye];
+
+function drawStage(si, ox, oy) {
+  const thr = si/9;
+
+  ctx.fillStyle='#07071A';
+  ctx.fillRect(ox,oy,SZ*SC,SZ*SC);
+
+  const starz=[[14,7],[228,20],[68,208],[222,162],[118,235],[9,132],[198,80],[52,175]];
+  for(const [sx,sy] of starz) { ctx.fillStyle='rgba(255,255,255,0.75)'; ctx.fillRect(ox+sx,oy+sy,1,1); }
+
+  for(let y=0;y<SZ;y++) {
+    for(let x=0;x<SZ;x++) {
+      const d=Math.sqrt((x-MCX)**2+(y-MCY)**2);
+
+      if(d>MR && d<=MR+1.6 && si>=3) {
+        const nb=[[x-1,y],[x+1,y],[x,y-1],[x,y+1]];
+        let near=false;
+        for(const [nx,ny] of nb) {
+          if(Math.sqrt((nx-MCX)**2+(ny-MCY)**2)<=MR && corruptVal(nx,ny)<=thr){ near=true; break; }
+        }
+        if(near) {
+          const a=Math.min(0.85,(si-2)/7);
+          ctx.fillStyle=`rgba(190,55,255,${a})`;
+          ctx.fillRect(ox+x*SC,oy+y*SC,SC,SC);
+        }
+        continue;
+      }
+      if(d>MR) continue;
+
+      const cv2=corruptVal(x,y);
+      const crg=corruptRGB(cv2,thr);
+      if(crg) {
+        ctx.fillStyle=`rgb(${crg[0]},${crg[1]},${crg[2]})`;
+      } else {
+        let col=moonCol(x,y);
+        const cr=craterCol(x,y);
+        if(cr) col=cr;
+        ctx.fillStyle=col;
+      }
+      ctx.fillRect(ox+x*SC,oy+y*SC,SC,SC);
+    }
+  }
+
+  for(const [ex,ey] of allEye) {
+    const cv2=corruptVal(ex,ey);
+    const crg=corruptRGB(cv2,thr);
+    if(!crg) {
+      ctx.fillStyle='#1A1A30';
+      ctx.fillRect(ox+ex*SC,oy+ey*SC,SC,SC);
+    } else {
+      ctx.fillStyle='#EE55FF';
+      ctx.fillRect(ox+ex*SC,oy+ey*SC,SC,SC);
+    }
+  }
+
+  for(const [sx,sy] of [[12,11],[20,11]]) {
+    if(!corruptRGB(corruptVal(sx,sy),thr)) {
+      ctx.fillStyle='#FFFFFF';
+      ctx.fillRect(ox+sx*SC,oy+sy*SC,SC,SC);
+    }
+  }
+
+  ctx.fillStyle= si<4 ? '#888899' : si<7 ? '#BB66FF' : '#EE55FF';
+  ctx.font=`bold 10px monospace`;
+  ctx.textAlign='center';
+  ctx.fillText(`${si+1}`, ox+SZ*SC/2, oy+SZ*SC+14);
+}
+
+const PAD=12, GAP=8, SPR=SZ*SC;
+for(let s=0;s<10;s++) {
+  const col=s%5, row=Math.floor(s/5);
+  drawStage(s, PAD+col*(SPR+GAP), PAD+row*(SPR+22));
+}
+</script>
