@@ -12,6 +12,7 @@ _SPRITE_DIR = os.path.normpath(
 )
 
 _SCALE = 2   # 32 × 32 raw → 64 × 64 on screen
+_RAW_BOTTOM_PAD = 9   # transparent pixels below crab body in each 32px frame
 
 
 def _load_crab_sheet(filename):
@@ -75,16 +76,25 @@ class Enemy(pygame.sprite.Sprite):
         self._use_sprites = any(v is not None for v in self._frames.values())
 
         if self._use_sprites:
-            self.WIDTH  = 32 * _SCALE   # 64
-            self.HEIGHT = 32 * _SCALE   # 64
+            sprite_w = 32 * _SCALE
+            sprite_h = 32 * _SCALE
+            self.WIDTH  = 30
+            self.HEIGHT = 30
+            self.image = pygame.Surface((sprite_w, sprite_h), pygame.SRCALPHA)
+            self._sprite_offset_x = (self.WIDTH - sprite_w) // 2
+            self._sprite_offset_y = self.HEIGHT - sprite_h + _RAW_BOTTOM_PAD * _SCALE
         else:
             self.WIDTH  = 30
             self.HEIGHT = 34
+            self.image = pygame.Surface((self.WIDTH, self.HEIGHT), pygame.SRCALPHA)
+            self._sprite_offset_x = 0
+            self._sprite_offset_y = 0
 
-        self.image = pygame.Surface((self.WIDTH, self.HEIGHT), pygame.SRCALPHA)
-        self.rect  = self.image.get_rect(topleft=(x, y))
+        self.rect = pygame.Rect(x, y, self.WIDTH, self.HEIGHT)
 
         self.spawn_x      = x
+        self.x             = float(x)
+        self.y             = float(y)
         self.vx           = float(ENEMY_SPEED)
         self.vy           = 0.0
         self.on_ground    = False
@@ -146,10 +156,16 @@ class Enemy(pygame.sprite.Sprite):
             self.vx    = ENEMY_SPEED if dx_to_player > 0 else -ENEMY_SPEED
             self._state = 'walk'
         else:
-            # Patrol: reverse when strayed too far from spawn
-            if abs(self.rect.x - self.spawn_x) > ENEMY_PATROL:
-                self.vx = -self.vx
-            self._state = 'walk'
+            # Patrol: idle near spawn, walk back if drifted too far
+            dist_from_spawn = abs(self.rect.x - self.spawn_x)
+            if dist_from_spawn > ENEMY_PATROL:
+                self.vx = ENEMY_SPEED if self.rect.x < self.spawn_x else -ENEMY_SPEED
+                self._state = 'walk'
+            elif dist_from_spawn < 8:
+                self.vx = float(ENEMY_SPEED)
+                self._state = 'idle'
+            else:
+                self._state = 'walk'
 
         self._facing_right = self.vx > 0
 
@@ -158,7 +174,8 @@ class Enemy(pygame.sprite.Sprite):
         self.vy  = min(self.vy, TERMINAL_VEL)
 
         # ── Horizontal movement + collision ───────────────────────────────────
-        self.rect.x += int(self.vx * dt)
+        self.x += self.vx * dt
+        self.rect.x = int(self.x)
         for tile in tiles:
             if self.rect.colliderect(tile):
                 if self.vx > 0:
@@ -167,10 +184,12 @@ class Enemy(pygame.sprite.Sprite):
                 elif self.vx < 0:
                     self.rect.left  = tile.right
                     self.vx = -self.vx
+        self.x = float(self.rect.x)
 
         # ── Vertical movement + collision ─────────────────────────────────────
         self.on_ground = False
-        self.rect.y   += int(self.vy * dt)
+        self.y += self.vy * dt
+        self.rect.y = int(self.y)
         for tile in tiles:
             if self.rect.colliderect(tile):
                 if self.vy > 0:
@@ -180,6 +199,14 @@ class Enemy(pygame.sprite.Sprite):
                 elif self.vy < 0:
                     self.rect.top = tile.bottom
                     self.vy       = 0.0
+        self.y = float(self.rect.y)
+
+        if not self.on_ground and self.vy >= 0:
+            probe = pygame.Rect(self.rect.x, self.rect.bottom, self.rect.width, 2)
+            for tile in tiles:
+                if probe.colliderect(tile):
+                    self.on_ground = True
+                    break
 
         # ── Animation tick ────────────────────────────────────────────────────
         self.anim_timer += dt

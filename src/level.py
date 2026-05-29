@@ -14,36 +14,7 @@ _tile_img_cache = {}
 
 
 def _get_tile_img(level_num):
-    """
-    Load the maze wall texture and tint it to match the level palette.
-    Returns a TILE_SIZE × TILE_SIZE surface, or None if the file is missing.
-    """
-    if level_num in _tile_img_cache:
-        return _tile_img_cache[level_num]
-
-    path = os.path.normpath(os.path.join(
-        os.path.dirname(__file__), '..', 'assests', 'sprites',
-        'maze', 'individual sprites', 'walls-top-32x32.png'
-    ))
-    result = None
-    if os.path.exists(path):
-        try:
-            raw = pygame.image.load(path)
-            try:
-                raw = raw.convert_alpha()   # requires display; may fail in test
-            except Exception:
-                pass
-            scaled = pygame.transform.scale(raw, (TILE_SIZE, TILE_SIZE))
-            # Subtle tint toward the level palette color
-            tint_color = LVL1_TILE_COLOR if level_num == 1 else LVL2_TILE_COLOR
-            tinted = scaled.copy()
-            tinted.fill((*tint_color, 140), special_flags=pygame.BLEND_RGBA_MULT)
-            scaled.blit(tinted, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
-            result = scaled
-        except Exception:
-            result = None
-    _tile_img_cache[level_num] = result
-    return result
+    return None
 
 
 class Level:
@@ -150,7 +121,6 @@ class Level:
 
             if self._tile_img is not None:
                 surface.blit(self._tile_img, sr.topleft)
-                # Top highlight strip over texture
                 pygame.draw.line(surface, self.tile_accent, sr.topleft, sr.topright, 2)
             else:
                 pygame.draw.rect(surface, self.tile_color, sr)

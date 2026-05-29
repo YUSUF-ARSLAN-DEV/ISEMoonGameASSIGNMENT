@@ -14,6 +14,8 @@ _SPRITE_DIR = os.path.normpath(
 )
 
 FRAME_SIZE = 64  # every frame in the sprite sheets is 64 × 64 px
+_SPRITE_TOP_PAD = 23    # transparent pixels above character head in each frame
+_SPRITE_BOTTOM_PAD = 16  # transparent pixels below character feet in each frame
 
 
 def _load_sheet(filename, cols, rows):
@@ -76,14 +78,20 @@ class Player(pygame.sprite.Sprite):
         }
         self._use_sprites = any(v is not None for v in self._frames.values())
 
-        # Use 64×64 when sprites are available; fall back to original hitbox
-        w = FRAME_SIZE   if self._use_sprites else PLAYER_WIDTH
-        h = FRAME_SIZE   if self._use_sprites else PLAYER_HEIGHT
+        if self._use_sprites:
+            self.image = pygame.Surface((FRAME_SIZE, FRAME_SIZE), pygame.SRCALPHA)
+            self._sprite_offset_x = (PLAYER_WIDTH - FRAME_SIZE) // 2
+            self._sprite_offset_y = -_SPRITE_TOP_PAD
+        else:
+            self.image = pygame.Surface((PLAYER_WIDTH, PLAYER_HEIGHT), pygame.SRCALPHA)
+            self._sprite_offset_x = 0
+            self._sprite_offset_y = 0
 
-        self.image = pygame.Surface((w, h), pygame.SRCALPHA)
-        self.rect  = self.image.get_rect(topleft=pos)
+        self.rect = pygame.Rect(pos[0], pos[1], PLAYER_WIDTH, PLAYER_HEIGHT)
 
         # Physics state
+        self.x               = float(self.rect.x)
+        self.y               = float(self.rect.y)
         self.vx              = 0.0
         self.vy              = 0.0
         self.on_ground       = False
@@ -179,13 +187,24 @@ class Player(pygame.sprite.Sprite):
         self.vy  = min(self.vy, TERMINAL_VEL)
 
         # Horizontal move → resolve X collisions
-        self.rect.x += int(self.vx * dt)
+        self.x += self.vx * dt
+        self.rect.x = int(self.x)
         self._collide_x(tiles)
+        self.x = float(self.rect.x)
 
         # Vertical move → resolve Y collisions
         self.on_ground = False
-        self.rect.y   += int(self.vy * dt)
+        self.y += self.vy * dt
+        self.rect.y = int(self.y)
         self._collide_y(tiles)
+        self.y = float(self.rect.y)
+
+        if not self.on_ground and self.vy >= 0:
+            probe = pygame.Rect(self.rect.x, self.rect.bottom, self.rect.width, 2)
+            for tile in tiles:
+                if probe.colliderect(tile):
+                    self.on_ground = True
+                    break
 
         # Oxygen drains continuously
         self.oxygen -= OXYGEN_DRAIN_RATE * dt
@@ -243,13 +262,13 @@ class Player(pygame.sprite.Sprite):
         if not self.alive:
             self.state = 'dead'
             return
+        if self.state == 'hurt' and self.invincible:
+            return
         if not self.on_ground:
             self.state = 'jump'
         elif abs(self.vx) > 0:
             self.state = 'walk'
-        elif self.state == 'hurt' and self.invincible_timer < 0.8:
-            self.state = 'idle'
-        elif self.state not in ('hurt', 'idle'):
+        else:
             self.state = 'idle'
 
     def _collide_x(self, tiles):

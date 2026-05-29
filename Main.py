@@ -113,8 +113,7 @@ def main():
     trans_timer     = 0.0
     footstep_timer    = 0.0
     oxygen_beep_timer = 0.0
-
-    level = camera = player = enemies = particles = None
+    oxygen_leak_timer = 0.0
     comets      = []
     comet_timer = 0.0
 
@@ -139,6 +138,7 @@ def main():
                 level, camera, player, enemies, particles, comets, comet_timer = \
                     _load_level(current_level, audio)
                 oxygen_beep_timer = 0.0
+                oxygen_leak_timer = 0.0
                 state = STATE_PLAYING
 
         # ── PLAYING ───────────────────────────────────────────────────────────
@@ -173,8 +173,9 @@ def main():
             if player.oxygen <= 0:
                 pass   # suffocation handled in player.update
             elif player.oxygen < 25:
-                # Critical: cyan bubbles + urgent beep every 1.2 s
-                if int(elapsed * 6) % 2 == 0:
+                oxygen_leak_timer += dt
+                if oxygen_leak_timer >= 0.20:
+                    oxygen_leak_timer = 0.0
                     particles.emit_oxygen_leak(player.rect.centerx, player.rect.top)
                 if oxygen_beep_timer >= 1.2:
                     oxygen_beep_timer = 0.0
@@ -218,7 +219,8 @@ def main():
                     level.oxygen_rects.remove(oxy)
                     particles.emit_sparks(oxy.centerx, oxy.centery, count=8)
                     audio.play('pickup')
-                    oxygen_beep_timer = 0.0   # restart warning cadence after refill
+                    oxygen_beep_timer = 0.0
+                    oxygen_leak_timer = 0.0
 
             # Exit portal
             if level.exit_rect and player.rect.colliderect(level.exit_rect):
@@ -257,7 +259,7 @@ def main():
                             particles.emit_sparks(player.rect.centerx, player.rect.centery)
                             audio.play('hurt')
 
-            comets = [c for c in comets if c.alive or not c.exploded]
+            comets = [c for c in comets if c.alive]
 
             # Death check
             if not player.alive or player.rect.top > WINDOW_HEIGHT + 50:
@@ -280,11 +282,14 @@ def main():
                 comet.draw(screen, camera.offset_x + sx)
 
             pr = camera.apply(player.rect)
-            pr.x += sx; pr.y += sy
+            pr.x += player._sprite_offset_x + sx
+            pr.y += player._sprite_offset_y + sy
             screen.blit(player.image, pr)
 
             for enemy in enemies:
                 er = camera.apply(enemy.rect)
+                er.x += enemy._sprite_offset_x
+                er.y += enemy._sprite_offset_y
                 screen.blit(enemy.image, er)
 
             particles.draw(screen, camera.offset_x)
@@ -303,6 +308,7 @@ def main():
                 level, camera, player, enemies, particles, comets, comet_timer = \
                     _load_level(current_level, audio)
                 oxygen_beep_timer = 0.0
+                oxygen_leak_timer = 0.0
                 state = STATE_PLAYING
 
         # ── DEAD ──────────────────────────────────────────────────────────────
@@ -315,6 +321,7 @@ def main():
                 level, camera, player, enemies, particles, comets, comet_timer = \
                     _load_level(current_level, audio)
                 oxygen_beep_timer = 0.0
+                oxygen_leak_timer = 0.0
                 state = STATE_PLAYING
 
         # ── WIN ───────────────────────────────────────────────────────────────
@@ -327,6 +334,7 @@ def main():
                 level, camera, player, enemies, particles, comets, comet_timer = \
                     _load_level(current_level, audio)
                 oxygen_beep_timer = 0.0
+                oxygen_leak_timer = 0.0
                 audio.start_music(1)
                 state = STATE_PLAYING
 

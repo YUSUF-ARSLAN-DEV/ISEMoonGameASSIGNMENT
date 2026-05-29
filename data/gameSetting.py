@@ -5,8 +5,8 @@ WINDOW_HEIGHT = 600
 FPS           = 60
 
 # ─── Tile ─────────────────────────────────────────────────────────────────────
-TILE_SIZE     = 48
-LEVEL_COLS    = 40
+TILE_SIZE     = 40
+LEVEL_COLS    = 55
 
 # ─── Physics ──────────────────────────────────────────────────────────────────
 GRAVITY       = 900
@@ -16,7 +16,7 @@ TERMINAL_VEL  = 800
 
 # ─── Player ───────────────────────────────────────────────────────────────────
 PLAYER_WIDTH          = 28
-PLAYER_HEIGHT         = 40
+PLAYER_HEIGHT         = 32
 PLAYER_MAX_HEALTH     = 3
 PLAYER_MAX_OXYGEN     = 100
 OXYGEN_DRAIN_RATE     = 1.5
@@ -69,31 +69,27 @@ LVL2_TILE_ACCENT = (42,  22,  60)
 LEVEL_1_MAP = [
     "                                        ",
     "                                        ",
-    "        XX                              ",
-    "                     XX                 ",
+    "              E                         ",
+    "             XXX                        ",
     "                                        ",
-    "   XXXXX    XX             XXXXX        ",
+    "                         O              ",
+    "                 XXXXXXXXX              ",
     "                                        ",
-    "  XXX                            XXX    ",
-    "  E                     E               ",
-    "  XXXXX    XXXXXX        XXXXXXX  O     ",
-    "                                  X     ",
-    "P                                    >  ",
-    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "           XXXXXX                       ",
+    "P                          E          > ",
+    "XXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXXXXXX",
 ]
 
 LEVEL_2_MAP = [
-    "                                        ",
-    "   XX                         XX        ",
-    "                                        ",
-    "       XXXXX           XXXXX            ",
-    "   E                               E    ",
-    "   XX    XXX           XXX         XX   ",
-    "                                        ",
-    "     XXXXX    E     XXXXXX              ",
-    "                                   O    ",
-    "   XXX      XXXXX         XXXXX    X    ",
-    "                                        ",
-    "P                                    >  ",
-    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "                                                       ",
+    "                                                 X     ",
+    "                                       XXXXXXX       > ",
+    "                                 XXXXXXXX              ",
+    "                          O                            ",
+    "                      XXXXXXXXX                        ",
+    "                  XXXXX                                ",
+    "                                                       ",
+    "           XXXXXX                                      ",
+    "P                         E                            ",
+    "XXXXXXXX           XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
 ]
