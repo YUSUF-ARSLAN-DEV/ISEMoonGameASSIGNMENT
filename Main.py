@@ -90,7 +90,9 @@ def _load_level(level_num, audio):
     enemies     = [Enemy(ex, ey, all_sprites) for ex, ey in level.enemy_spawns]
     particles   = ParticleSystem()
     comets      = []
-    comet_timer = 0.0
+    # Pre-charge the comet timer on Level 2 so the first comet arrives
+    # almost immediately (interval is 9s, starting at 7s = 2s wait)
+    comet_timer = 7.0 if level_num == 2 else 0.0
     audio.start_music(level_num)
     return level, camera, player, enemies, particles, comets, comet_timer
 
@@ -235,7 +237,8 @@ def main():
 
             # Comet system
             comet_timer += dt
-            if comet_timer >= COMET_SPAWN_INTERVAL:
+            comet_interval = COMET_SPAWN_INTERVAL if current_level == 1 else 9
+            if comet_timer >= comet_interval:
                 comet_timer = 0.0
                 spawn_x = camera.offset_x + random.randint(60, WINDOW_WIDTH - 60)
                 comets.append(Comet(spawn_x, camera.offset_x))
@@ -293,6 +296,11 @@ def main():
                 screen.blit(enemy.image, er)
 
             particles.draw(screen, camera.offset_x)
+
+            # Level 2 darkness overlay — torch-light special effect
+            if current_level == 2:
+                level.draw_darkness(screen, pr.centerx, pr.centery)
+
             draw_hud(screen, player, current_level)
 
         # ── TRANSITION ────────────────────────────────────────────────────────

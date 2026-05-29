@@ -130,6 +130,38 @@ class Level:
                 pygame.draw.line(surface, self.tile_accent,
                                  (cx, sr.y + 8), (cx + 12, sr.y + 20), 1)
 
+    def draw_darkness(self, surface, light_x, light_y):
+        """
+        Lunar cavern darkness overlay — Level 2 only.
+
+        Creates a torch-light special effect: the screen is mostly dark except
+        for a radial gradient centred on the player.  Built by layering an
+        SRCALPHA surface (filled solid dark) and using BLEND_RGBA_MIN to carve
+        out a transparent "light cone" — pixels closest to the player become
+        fully transparent, letting the scene show through.
+        """
+        if self.level_num != 2:
+            return
+
+        # Pitch-black overlay — fully opaque so nothing leaks through
+        dark = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+        dark.fill((0, 0, 0, 255))
+
+        # Glow surface: filled fully opaque outside, circles carve alpha toward
+        # zero at the centre.  BLEND_RGBA_MIN keeps the minimum alpha at each
+        # pixel, so only the carved-out light cone becomes transparent on 'dark'.
+        glow = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+        glow.fill((0, 0, 0, 255))   # fully opaque everywhere by default
+        for radius, alpha in [(280, 255), (220, 210), (160, 150), (100, 70), (50, 0)]:
+            pygame.draw.circle(glow, (0, 0, 0, alpha), (light_x, light_y), radius)
+
+        # After BLEND_RGBA_MIN:
+        #   outside 280 px → min(255,255)=255 → black (fully dark)
+        #   at 160 px      → min(255,150)=150 → partially transparent (dim)
+        #   within 50 px   → min(255,0)=0     → fully transparent (lit)
+        dark.blit(glow, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+        surface.blit(dark, (0, 0))
+
     def draw_items(self, surface, offset_x, elapsed):
         """
         Draw oxygen canisters and the exit portal with glowing effects.
