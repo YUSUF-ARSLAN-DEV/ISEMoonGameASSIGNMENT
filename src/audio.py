@@ -24,6 +24,7 @@ _FILE_MAP = {
     'low_oxygen':     'BELOW_15_OXYGEN.wav',
     'oxygen_50':      'OXYGEN_BELOW_50_WARNING.mp3',
     'explosion':      'ENEMYLASER_FIRE.mp3',
+    'you_died':       'Elden Ring YOU DIED [Sound Effect].mp3',
 }
 
 _SYNTH_FALLBACKS = {
@@ -37,6 +38,7 @@ _SYNTH_FALLBACKS = {
     'oxygen_50':      (360, 0.18, 0.30, 'square'),
     'explosion':      (65,  0.55, 0.65, 'square'),
     'level_complete': (523, 0.40, 0.50, 'sine'),
+    'you_died':       (110, 0.40, 0.50, 'square'),
 }
 
 

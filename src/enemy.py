@@ -33,6 +33,11 @@ def _load_crab_sheet(filename):
         for col in range(cols):
             raw    = sheet.subsurface(pygame.Rect(col * frame_w, 0, frame_w, frame_h))
             scaled = pygame.transform.scale(raw, (frame_w * _SCALE, frame_h * _SCALE))
+            # Desaturate to gray so the crab matches the moon surface palette
+            try:
+                scaled = pygame.transform.grayscale(scaled)
+            except Exception:
+                pass
             frames.append(scaled)
         return frames
     except Exception:
@@ -122,21 +127,21 @@ class Enemy(pygame.sprite.Sprite):
                 self.image.blit(frame, (0, 0))
             return
 
-        # ── Fallback: procedural alien ────────────────────────────────────────
-        body_color = (200, 45, 45) if self.anim_frame % 2 == 0 else (180, 35, 35)
+        # ── Fallback: procedural crab (gray moon palette) ────────────────────
+        body_color = (115, 118, 130) if self.anim_frame % 2 == 0 else (100, 103, 115)
         cx = self.WIDTH // 2
 
         pygame.draw.ellipse(self.image, body_color,
                             (3, 12, self.WIDTH - 6, self.HEIGHT - 12))
-        pygame.draw.circle(self.image, (225, 75, 75), (cx, 10), 10)
+        pygame.draw.circle(self.image, (140, 143, 155), (cx, 10), 10)
 
         for ex in (cx - 4, cx + 4):
             pygame.draw.circle(self.image, WHITE,        (ex, 9), 3)
-            pygame.draw.circle(self.image, (0, 210, 230),(ex, 9), 2)
+            pygame.draw.circle(self.image, (160, 165, 180),(ex, 9), 2)
             pygame.draw.circle(self.image, BLACK,        (ex, 9), 1)
 
-        pygame.draw.line(self.image, (230, 100, 100), (cx - 4, 1), (cx - 8, -5), 2)
-        pygame.draw.line(self.image, (230, 100, 100), (cx + 4, 1), (cx + 8, -5), 2)
+        pygame.draw.line(self.image, (160, 163, 175), (cx - 4, 1), (cx - 8, -5), 2)
+        pygame.draw.line(self.image, (160, 163, 175), (cx + 4, 1), (cx + 8, -5), 2)
 
     # ── Update ────────────────────────────────────────────────────────────────
 

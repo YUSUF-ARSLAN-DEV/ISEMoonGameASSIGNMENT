@@ -1,9 +1,12 @@
+from email.mime import audio
 import os
 import pygame
 import sys
 import math
 import random
 from data.gameSetting import *
+import os as _os
+_CINZEL_PATH = _os.path.join(_os.path.dirname(__file__), 'assests', 'fonts', 'Cinzel-Bold.ttf')
 from src.player    import Player
 from src.enemy     import Enemy
 from src.level     import Level
@@ -16,6 +19,7 @@ from src.audio     import AudioManager
 STATE_MENU       = 'menu'
 STATE_PLAYING    = 'playing'
 STATE_TRANSITION = 'transition'
+STATE_DYING      = 'dying'   # Elden Ring animated death screen
 STATE_DEAD       = 'dead'
 STATE_WIN        = 'win'
 
@@ -82,7 +86,12 @@ def _draw_menu(surface, font_big, font_small, elapsed):
 
 
 def _load_level(level_num, audio):
-    tilemap = LEVEL_1_MAP if level_num == 1 else LEVEL_2_MAP
+    if level_num == 1:
+        tilemap = LEVEL_1_MAP
+    elif level_num == 2:
+        tilemap = LEVEL_2_MAP
+    else:
+        tilemap = LEVEL_3_MAP
     level   = Level(tilemap, level_num)
     camera  = Camera()
     all_sprites = pygame.sprite.Group()
@@ -90,9 +99,10 @@ def _load_level(level_num, audio):
     enemies     = [Enemy(ex, ey, all_sprites) for ex, ey in level.enemy_spawns]
     particles   = ParticleSystem()
     comets      = []
-    # Pre-charge the comet timer on Level 2 so the first comet arrives
-    # almost immediately (interval is 9s, starting at 7s = 2s wait)
-    comet_timer = 7.0 if level_num == 2 else 0.0
+    # Comet timer starting offsets:
+    #   L1/L3: 0 (first comet fires after 1 full interval)
+    #   L2: -5 (gives ~14 s grace period in the dark before first comet)
+    comet_timer = -5.0 if level_num == 2 else 0.0
     audio.start_music(level_num)
     return level, camera, player, enemies, particles, comets, comet_timer
 
@@ -105,6 +115,12 @@ def main():
 
     font_big, font_mid, font_small = _make_fonts()
 
+    # Cinzel-Bold for the Elden Ring YOU DIED screen
+    try:
+        font_elden = pygame.font.Font(_CINZEL_PATH, 78)
+    except Exception:
+        font_elden = pygame.font.SysFont("Georgia", 78, bold=True)
+
     audio = AudioManager()
 
     state           = STATE_MENU
@@ -113,6 +129,8 @@ def main():
     shake_time      = 0.0
     shake_mag       = 6
     trans_timer     = 0.0
+    death_timer     = 0.0   # drives the YOU DIED animation
+    last_frame      = None  # snapshot of the last gameplay frame for death screen
     footstep_timer    = 0.0
     oxygen_beep_timer = 0.0
     oxygen_leak_timer = 0.0
@@ -214,6 +232,16 @@ def main():
                         shake_mag  = 6
             enemies = [e for e in enemies if e.alive_flag]
 
+            # Spike trap collision
+            for trap in level.trap_rects:
+                if player.rect.colliderect(trap):
+                    if player.take_damage():
+                        particles.emit_sparks(player.rect.centerx, player.rect.centery)
+                        audio.play('hurt')
+                        shake_time = 0.25
+                        shake_mag  = 6
+                    break
+
             # Oxygen pickup
             for oxy in level.oxygen_rects[:]:
                 if player.rect.colliderect(oxy):
@@ -231,16 +259,22 @@ def main():
                 if current_level == 1:
                     trans_timer = 1.8
                     state = STATE_TRANSITION
-                else:
+                elif current_level == 2:
+                    audio.stop_music()
+                    state = STATE_WIN
+                else:  # Level 3 complete
                     audio.stop_music()
                     state = STATE_WIN
 
-            # Comet system
+            # Comet system — interval per level; spawn biased toward player
             comet_timer += dt
-            comet_interval = COMET_SPAWN_INTERVAL if current_level == 1 else 9
+            comet_interval = {1: COMET_SPAWN_INTERVAL, 2: 6, 3: 2.5}.get(current_level, 10)
             if comet_timer >= comet_interval:
                 comet_timer = 0.0
-                spawn_x = camera.offset_x + random.randint(60, WINDOW_WIDTH - 60)
+                # Bias spawn above the player (±200 px) so comets feel like they're targeting you
+                bias_x   = player.rect.centerx + random.randint(-200, 200)
+                spawn_x  = max(camera.offset_x + 40,
+                               min(camera.offset_x + WINDOW_WIDTH - 40, bias_x))
                 comets.append(Comet(spawn_x, camera.offset_x))
 
             for comet in comets:
@@ -264,10 +298,13 @@ def main():
 
             comets = [c for c in comets if c.alive]
 
-            # Death check
+            # Death check → animated death screen
             if not player.alive or player.rect.top > WINDOW_HEIGHT + 50:
                 audio.stop_music()
-                state = STATE_DEAD
+                last_frame = screen.copy()
+                death_timer = 0.0
+                audio.play('you_died')   # Play immediately
+                state = STATE_DYING
 
             # Screen shake
             sx = sy = 0
@@ -279,6 +316,7 @@ def main():
             # Draw
             level.draw_background(screen, camera.offset_x)
             level.draw_tiles(screen,      camera.offset_x + sx)
+            level.draw_traps(screen,      camera.offset_x + sx)
             level.draw_items(screen,      camera.offset_x + sx, elapsed)
 
             for comet in comets:
@@ -297,9 +335,16 @@ def main():
 
             particles.draw(screen, camera.offset_x)
 
-            # Level 2 darkness overlay — torch-light special effect
+            # Level 2 darkness overlay — torch-light special effect (not on L3)
             if current_level == 2:
                 level.draw_darkness(screen, pr.centerx, pr.centery)
+
+            # Level 3: blood-red atmospheric pulse at screen edges
+            if current_level == 3:
+                pulse_a = int(30 + 20 * math.sin(elapsed * 4.0))
+                edge = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+                pygame.draw.rect(edge, (180, 0, 0, pulse_a), (0, 0, WINDOW_WIDTH, WINDOW_HEIGHT), 28)
+                screen.blit(edge, (0, 0))
 
             draw_hud(screen, player, current_level)
 
@@ -308,35 +353,89 @@ def main():
             level.draw_background(screen, camera.offset_x)
             level.draw_tiles(screen, camera.offset_x)
             particles.draw(screen, camera.offset_x)
-            _draw_overlay(screen, "LEVEL  2", (100, 255, 160), font_big,
+            next_lv = current_level + 1
+            _draw_overlay(screen, f"LEVEL  {next_lv}", (100, 255, 160), font_big,
                           "Get ready...", font_small)
             trans_timer -= dt
             if trans_timer <= 0:
-                current_level = 2
+                current_level = next_lv
                 level, camera, player, enemies, particles, comets, comet_timer = \
                     _load_level(current_level, audio)
                 oxygen_beep_timer = 0.0
                 oxygen_leak_timer = 0.0
                 state = STATE_PLAYING
 
+        # ── DYING (Elden Ring YOU DIED animation) ─────────────────────────────
+        elif state == STATE_DYING:
+            death_timer += dt
+
+            # Keep last gameplay frame as backdrop
+            if last_frame:
+                screen.blit(last_frame, (0, 0))
+
+            # Dark overlay fades in over 1.8 s
+            overlay_a = min(190, int(190 * (death_timer / 1.8)))
+            overlay   = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, overlay_a))
+            screen.blit(overlay, (0, 0))
+
+            # "YOU DIED" fades in + drifts upward starting at t = 0.7 s
+            if death_timer > 0.7:
+                t_prog   = min(1.0, (death_timer - 0.7) / 1.4)
+                txt_a    = int(255 * t_prog)
+                drift_y  = int(22 * (1.0 - t_prog))   # drifts up 22 px as it appears
+
+                you_died = font_elden.render("YOU  DIED", True, (185, 20, 20))
+                you_died.set_alpha(txt_a)
+                tx = WINDOW_WIDTH  // 2 - you_died.get_width()  // 2
+                ty = WINDOW_HEIGHT // 2 - you_died.get_height() // 2 + drift_y
+                screen.blit(you_died, (tx, ty))
+
+
+
+            # After 4 s switch to static DEAD screen (shows retry prompt)
+            if death_timer >= 4.0:
+                state = STATE_DEAD
+
+
         # ── DEAD ──────────────────────────────────────────────────────────────
         elif state == STATE_DEAD:
-            screen.fill(BLACK)
-            _draw_overlay(screen, "YOU  DIED", RED, font_big,
-                          "Press  R  to retry   |   ESC  to quit", font_small)
+            # Keep last frame visible behind the prompt
+  
+        
+            if last_frame:
+                screen.blit(last_frame, (0, 0))
+            overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 190))
+            screen.blit(overlay, (0, 0))
+
+            you_died = font_elden.render("YOU  DIED", True, (185, 20, 20))
+            screen.blit(you_died, (WINDOW_WIDTH  // 2 - you_died.get_width()  // 2,
+                                   WINDOW_HEIGHT // 2 - you_died.get_height() // 2 - 24))
+            sub = font_small.render("Press  R  to retry   |   ESC  to quit", True, GRAY)
+            screen.blit(sub, (WINDOW_WIDTH // 2 - sub.get_width() // 2,
+                               WINDOW_HEIGHT // 2 + 28))
+            
+
+
             if keys[pygame.K_r]:
                 current_level = 1
                 level, camera, player, enemies, particles, comets, comet_timer = \
                     _load_level(current_level, audio)
                 oxygen_beep_timer = 0.0
                 oxygen_leak_timer = 0.0
+                last_frame = None
                 state = STATE_PLAYING
 
         # ── WIN ───────────────────────────────────────────────────────────────
         elif state == STATE_WIN:
             screen.fill((4, 4, 28))
+            if current_level < 3:
+                sub_msg = "R - Play again   |   3 - Try INSANE mode   |   ESC - Quit"
+            else:
+                sub_msg = "You beat INSANE mode!   R - Play again   |   ESC - Quit"
             _draw_overlay(screen, "YOU  ESCAPED!", (100, 255, 200), font_mid,
-                          "Press  R  to play again   |   ESC  to quit", font_small)
+                          sub_msg, font_small)
             if keys[pygame.K_r]:
                 current_level = 1
                 level, camera, player, enemies, particles, comets, comet_timer = \
@@ -344,6 +443,13 @@ def main():
                 oxygen_beep_timer = 0.0
                 oxygen_leak_timer = 0.0
                 audio.start_music(1)
+                state = STATE_PLAYING
+            elif keys[pygame.K_3] and current_level < 3:
+                current_level = 3
+                level, camera, player, enemies, particles, comets, comet_timer = \
+                    _load_level(current_level, audio)
+                oxygen_beep_timer = 0.0
+                oxygen_leak_timer = 0.0
                 state = STATE_PLAYING
 
         pygame.display.flip()
