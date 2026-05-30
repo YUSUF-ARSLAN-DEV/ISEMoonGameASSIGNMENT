@@ -67,9 +67,10 @@ class Level:
                 if cell == 'X':
                     self.tiles.append(pygame.Rect(x, y, TILE_SIZE, TILE_SIZE))
                 elif cell == 'T':
-                    spike_h = int(TILE_SIZE * 0.6)
+                    # Spike pit hitbox: upper 40% of tile height, narrowed sides.
+                    spike_h = int(TILE_SIZE * 0.40)
                     self.trap_rects.append(
-                        pygame.Rect(x + 2, y, TILE_SIZE - 4, spike_h)
+                        pygame.Rect(x + 6, y, TILE_SIZE - 12, spike_h)
                     )
                 elif cell == 'P':
                     self.player_spawn = (x, y)
@@ -164,14 +165,14 @@ class Level:
             sx = trap.x - offset_x
             if not (-TILE_SIZE < sx < WINDOW_WIDTH + TILE_SIZE):
                 continue
-            base_y = trap.y + trap.height
-            n_spikes = 3
+            base_y = trap.y + TILE_SIZE
+            n_spikes = 2
             spike_w  = trap.width // n_spikes
             for i in range(n_spikes):
                 x0 = int(sx) + i * spike_w
                 x1 = x0 + spike_w
                 tip_x = x0 + spike_w // 2
-                tip_y = trap.y
+                tip_y = trap.y + 4
                 pygame.draw.polygon(surface, _SPIKE_COLOR, [
                     (x0, base_y), (x1, base_y), (tip_x, tip_y)
                 ])
@@ -179,7 +180,12 @@ class Level:
                                  (tip_x, tip_y), (x0, base_y), 1)
 
     def draw_darkness(self, surface, light_x, light_y):
-        if self.level_num != 2:
+        """
+        Darkness overlay for Level 2 (torch-light) and Level 3 (blood-moon nearsight).
+        Level 2: neutral dark with moderate light radius.
+        Level 3: tight red-tinted darkness — much harder to see, INSANE atmosphere.
+        """
+        if self.level_num not in (2, 3):
             return
 
         dark = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
@@ -187,11 +193,24 @@ class Level:
 
         glow = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
         glow.fill((0, 0, 0, 255))
-        for radius, alpha in [(280, 255), (220, 210), (160, 150), (100, 70), (50, 0)]:
-            pygame.draw.circle(glow, (0, 0, 0, alpha), (light_x, light_y), radius)
+
+        if self.level_num == 2:
+            # Level 2 — standard torch: decent visibility
+            for radius, alpha in [(280, 255), (220, 210), (160, 150), (100, 70), (50, 0)]:
+                pygame.draw.circle(glow, (0, 0, 0, alpha), (light_x, light_y), radius)
+        else:
+            # Level 3 — blood-moon nearsight: tight reddish darkness
+            for radius, alpha in [(180, 255), (130, 220), (90, 160), (55, 80), (28, 0)]:
+                pygame.draw.circle(glow, (0, 0, 0, alpha), (light_x, light_y), radius)
 
         dark.blit(glow, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
         surface.blit(dark, (0, 0))
+
+        # Level 3: red fog at screen edges to sell the blood-moon atmosphere
+        if self.level_num == 3:
+            fog = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+            fog.fill((60, 0, 0, 28))
+            surface.blit(fog, (0, 0))
 
     def draw_items(self, surface, offset_x, elapsed):
         for oxy in self.oxygen_rects:
