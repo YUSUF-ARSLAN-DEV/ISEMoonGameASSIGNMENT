@@ -620,7 +620,7 @@ def main():
             if show_insane_prompt and last_frame:
                 screen.blit(last_frame, (0, 0))
                 _draw_overlay(screen, "INSANE  MODE?", (255, 100, 100), font_big,
-                              "The alien mothership awaits...  Y  -  Yes      N  -  No      M  -  Menu",
+                              "the blood moon awaits...  Y  -  Yes      N  -  No      M  -  Menu",
                               font_small, (200, 200, 200))
                 if keys[pygame.K_y]:
                     current_level = 3
