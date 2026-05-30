@@ -493,11 +493,14 @@ class CutsceneManager:
                 # Player wants to advance → call _advance() to move to next
                 self._advance()
 
-            # ── ESC skips the entire cutscene ─────────────────────────────────
-            # If the player presses Escape, they want to skip ALL remaining
-            # dialogue and jump straight to the game.
-            if pygame.K_ESCAPE in just_pressed_keys:
-                self._finished = True
+        # ── ESC skips the entire cutscene ─────────────────────────────────
+        # If the player presses Escape, they want to skip ALL remaining
+        # dialogue and jump straight to the game.
+        # NOTE: This check is OUTSIDE the if/else so it runs regardless of
+        # whether text is still typing or fully revealed — fixing the
+        # "need to press ESC twice" bug.
+        if pygame.K_ESCAPE in just_pressed_keys:
+            self._finished = True
 
     # ══════════════════════════════════════════════════════════════════════════
     # SECTION 4 — DRAW METHOD (called every frame)
@@ -681,6 +684,15 @@ class CutsceneManager:
                 ay = self._box_rect.bottom - arrow.get_height() - 8  # 8px from bottom of box
 
                 surface.blit(arrow, (ax, ay))
+
+        # ── 7. DRAW "ESC - Skip" HINT ─────────────────────────────────────────
+        # Show a small label in the top-right corner so players know they can
+        # skip the cutscene by pressing Escape.
+        skip_surf = self.name_font.render("ESC - Skip", True, (150, 150, 150))
+        skip_surf.set_alpha(120)
+        sx = WINDOW_WIDTH - skip_surf.get_width() - 16
+        sy = 12
+        surface.blit(skip_surf, (sx, sy))
 
     # ══════════════════════════════════════════════════════════════════════════
     # SECTION 5 — PROPERTIES (like variables that run code when you read them)
