@@ -91,9 +91,9 @@ LEVEL_1_MAP = [
 
 LEVEL_2_MAP = [
     "                                                                                                    ",
+    "                                                                                                    ",
     "                 O                   O                   O                   O                      ",
-    "               XXXXX               XXXXX               XXXXX               XXXXX                    ",
-    "           E                E                 E                 E                 E                 ",
+    "           E   XXXXX        E      XXXXX      E        XXXXX    E          XXXXX  E                 ",
     "           O                O                 O                 O                 O                 ",
     "        XXXXXXX          XXXXXXX           XXXXXXX           XXXXXXX           XXXXXXX              ",
     "            E              E              E              E              E              E            ",
