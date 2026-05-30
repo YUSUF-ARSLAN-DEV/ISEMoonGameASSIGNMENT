@@ -20,6 +20,7 @@ from data.cutscene_data import INTRO_CUTSCENE, MID_CUTSCENE
 STATE_MENU           = 'menu'
 STATE_LEVEL_SELECT   = 'level_select'
 STATE_PLAYING        = 'playing'
+STATE_PAUSED         = 'paused'
 STATE_TRANSITION     = 'transition'
 STATE_DYING          = 'dying'
 STATE_DEAD           = 'dead'
