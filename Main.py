@@ -599,11 +599,29 @@ def main():
         elif state == STATE_WIN:
             screen.fill((4, 4, 28))
             if current_level < 3:
-                sub_msg = "R - Play again   |   3 - Try INSANE mode   |   M - Menu   |   ESC - Quit"
+                sub_msg = "R - Play again   |   3 - Try INSANE mode   |   M - Main Menu"
             else:
-                sub_msg = "You conquered INSANE!   R - Play again   |   M - Menu   |   ESC - Quit"
+                sub_msg = "You conquered INSANE!   R - Play again   |   M - Main Menu"
             _draw_overlay(screen, "YOU  ESCAPED!", (100, 255, 200), font_mid,
                           sub_msg, font_small)
+            if current_level == 3:
+                cheat_line_1 = font_small.render(
+                    "Have fun with these cheat codes!",
+                    True, (160, 160, 160)
+                )
+                screen.blit(cheat_line_1, (WINDOW_WIDTH // 2 - cheat_line_1.get_width() // 2, 535))
+
+                cheat_line_2 = font_small.render(
+                    "wxwxs",
+                    True, (160, 160, 160)
+                )
+                screen.blit(cheat_line_2, (WINDOW_WIDTH // 2 - cheat_line_2.get_width() // 2, 565))
+
+                cheat_line_3 = font_small.render(
+                    "9l9lo",
+                    True, (160, 160, 160)
+                )
+                screen.blit(cheat_line_3, (WINDOW_WIDTH // 2 - cheat_line_3.get_width() // 2, 595))
             if keys[pygame.K_r]:
                 level, camera, player, enemies, particles, comets, comet_timer = \
                     _load_level(current_level, audio)
