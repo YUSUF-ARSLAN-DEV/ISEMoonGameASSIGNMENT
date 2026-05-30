@@ -22,6 +22,7 @@ STATE_TRANSITION   = 'transition'
 STATE_DYING        = 'dying'
 STATE_DEAD         = 'dead'
 STATE_WIN          = 'win'
+STATE_EXIT_CONFIRM = 'exit_confirm'
 
 _FONT_PATH = os.path.normpath(
     os.path.join(os.path.dirname(__file__), 'assests', 'sprites',
@@ -152,7 +153,7 @@ def _load_level(level_num, audio):
 
 def main():
     pygame.init()
-    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
     pygame.display.set_caption(TITLE)
     clock  = pygame.time.Clock()
 
@@ -180,6 +181,12 @@ def main():
     comet_timer = 0.0
     menu_cursor       = 0   # 0 = Play Game, 1 = Select Level
     level_cursor      = 0   # 0 = L1, 1 = L2, 2 = L3
+    exit_confirm_prev_state = STATE_MENU
+
+    # Cheat codes
+    CHEAT_OXYGEN = (pygame.K_9, pygame.K_l, pygame.K_9, pygame.K_l, pygame.K_o)
+    CHEAT_SPEED  = (pygame.K_w, pygame.K_x, pygame.K_w, pygame.K_x, pygame.K_s)
+    cheat_buffer = []
 
     # Placeholders so references work before first _load_level
     level = None; camera = None; player = None; enemies = []; particles = None
@@ -192,13 +199,30 @@ def main():
         # ── Event handling ────────────────────────────────────────────────────
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit(); sys.exit()
+                if state in (STATE_MENU, STATE_PLAYING):
+                    last_frame = screen.copy()
+                    exit_confirm_prev_state = state
+                    state = STATE_EXIT_CONFIRM
+                else:
+                    pygame.quit(); sys.exit()
 
             if event.type == pygame.KEYDOWN:
+                # ── Exit confirmation ──────────────────────────────────────────
+                if state == STATE_EXIT_CONFIRM:
+                    if event.key == pygame.K_y:
+                        pygame.quit(); sys.exit()
+                    else:
+                        state = exit_confirm_prev_state
+                    continue
+
                 # Global ESC: back to menu or quit
                 if event.key == pygame.K_ESCAPE:
                     if state == STATE_LEVEL_SELECT:
                         state = STATE_MENU
+                    elif state in (STATE_MENU, STATE_PLAYING):
+                        last_frame = screen.copy()
+                        exit_confirm_prev_state = state
+                        state = STATE_EXIT_CONFIRM
                     else:
                         pygame.quit(); sys.exit()
 
@@ -231,6 +255,20 @@ def main():
                             _load_level(current_level, audio)
                         oxygen_beep_timer = oxygen_leak_timer = 0.0
                         state = STATE_PLAYING
+
+                # ── Cheat codes ────────────────────────────────────────────────
+                elif state == STATE_PLAYING:
+                    cheat_buffer.append(event.key)
+                    if len(cheat_buffer) > 5:
+                        cheat_buffer.pop(0)
+                    if tuple(cheat_buffer) == CHEAT_OXYGEN:
+                        player.cheat_infinite_oxygen = not player.cheat_infinite_oxygen
+                        cheat_buffer.clear()
+                        particles.emit_sparks(player.rect.centerx, player.rect.centery, count=20)
+                    elif tuple(cheat_buffer) == CHEAT_SPEED:
+                        player.cheat_speed_multiplier = 2.5 if player.cheat_speed_multiplier == 1.0 else 1.0
+                        cheat_buffer.clear()
+                        particles.emit_sparks(player.rect.centerx, player.rect.centery, count=20)
 
         keys = pygame.key.get_pressed()
 
@@ -507,6 +545,24 @@ def main():
             elif keys[pygame.K_m]:
                 menu_cursor = 0
                 state       = STATE_MENU
+
+        # ── EXIT CONFIRM ──────────────────────────────────────────────────────
+        elif state == STATE_EXIT_CONFIRM:
+            if last_frame:
+                screen.blit(last_frame, (0, 0))
+            overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 170))
+            screen.blit(overlay, (0, 0))
+            msg = font_big.render("EXIT  GAME?", True, (255, 220, 80))
+            screen.blit(msg, (WINDOW_WIDTH // 2 - msg.get_width() // 2,
+                              WINDOW_HEIGHT // 2 - msg.get_height() // 2 - 20))
+            label_y = WINDOW_HEIGHT // 2 + 20
+            yes_txt = font_small.render("Y  -  Yes", True, (80, 255, 80))
+            no_txt  = font_small.render("      Any other key  -  No", True, (255, 80, 80))
+            both_w  = yes_txt.get_width() + no_txt.get_width()
+            start_x = WINDOW_WIDTH // 2 - both_w // 2
+            screen.blit(yes_txt, (start_x, label_y))
+            screen.blit(no_txt,  (start_x + yes_txt.get_width(), label_y))
 
         pygame.display.flip()
 

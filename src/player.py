@@ -102,6 +102,8 @@ class Player(pygame.sprite.Sprite):
         self.health = PLAYER_MAX_HEALTH
         self.oxygen = PLAYER_MAX_OXYGEN
         self.alive  = True
+        self.cheat_infinite_oxygen = False
+        self.cheat_speed_multiplier = 1.0
 
         # Invincibility frames after taking damage
         self.invincible       = False
@@ -170,11 +172,12 @@ class Player(pygame.sprite.Sprite):
         # Input
         keys = pygame.key.get_pressed()
         self.vx = 0.0
+        speed = PLAYER_SPEED * self.cheat_speed_multiplier
         if keys[pygame.K_LEFT]  or keys[pygame.K_a]:
-            self.vx = -PLAYER_SPEED
+            self.vx = -speed
             self.facing_right = False
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.vx =  PLAYER_SPEED
+            self.vx =  speed
             self.facing_right = True
         if (keys[pygame.K_SPACE] or keys[pygame.K_UP] or keys[pygame.K_w]) \
                 and self.on_ground:
@@ -190,6 +193,9 @@ class Player(pygame.sprite.Sprite):
         self.x += self.vx * dt
         self.rect.x = int(self.x)
         self._collide_x(tiles)
+        if self.rect.left < 0:
+            self.rect.left = 0
+            self.vx = 0.0
         self.x = float(self.rect.x)
 
         # Vertical move → resolve Y collisions
@@ -207,8 +213,9 @@ class Player(pygame.sprite.Sprite):
                     break
 
         # Oxygen drains continuously
-        self.oxygen -= OXYGEN_DRAIN_RATE * dt
-        self.oxygen  = max(0.0, self.oxygen)
+        if not self.cheat_infinite_oxygen:
+            self.oxygen -= OXYGEN_DRAIN_RATE * dt
+            self.oxygen  = max(0.0, self.oxygen)
         if self.oxygen == 0:
             self.take_damage()
 
