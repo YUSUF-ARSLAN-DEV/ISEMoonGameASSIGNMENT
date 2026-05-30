@@ -615,29 +615,6 @@ def main():
 
         # ── WIN ───────────────────────────────────────────────────────────────
         elif state == STATE_WIN:
-<<<<<<< HEAD
-            if show_insane_prompt and last_frame:
-                screen.blit(last_frame, (0, 0))
-                _draw_overlay(screen, "INSANE  MODE?", (255, 100, 100), font_big,
-                              "The blood moon awaits...  Y  -  Yes      N  -  No      M  -  Menu",
-                              font_small, (200, 200, 200))
-                if keys[pygame.K_y]:
-                    current_level = 3
-                    level, camera, player, enemies, particles, comets, comet_timer = \
-                        _load_level(current_level, audio)
-                    oxygen_beep_timer = oxygen_leak_timer = 0.0
-                    show_insane_prompt = False
-                    last_frame = None
-                    state = STATE_PLAYING
-                elif keys[pygame.K_n]:
-                    show_insane_prompt = False
-                    last_frame = None
-                elif keys[pygame.K_m]:
-                    show_insane_prompt = False
-                    last_frame = None
-                    menu_cursor = 0
-                    state = STATE_MENU
-=======
             # Show "WELCOME HOME" over Auren's house background
             try:
                 home_bg = pygame.image.load(
@@ -649,7 +626,6 @@ def main():
                 screen.fill((4, 4, 28))
             if current_level < 3:
                 sub_msg = "R - Play again   |   3 - Try INSANE mode   |   M - Menu   |   ESC - Quit"
->>>>>>> e1115544216e85a7e44dd111f65f3876cfe07249
             else:
                 sub_msg = "You conquered INSANE!   R - Play again   |   M - Menu   |   ESC - Quit"
             _draw_overlay(screen, "WELCOME  HOME", (100, 255, 200), font_big,
