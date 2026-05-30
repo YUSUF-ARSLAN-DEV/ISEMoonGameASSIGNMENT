@@ -14,16 +14,19 @@ from src.particles import ParticleSystem
 from src.comet     import Comet
 from src.hud       import draw_hud
 from src.audio     import AudioManager
+from src.cutscene  import CutsceneManager
+from data.cutscene_data import INTRO_CUTSCENE, MID_CUTSCENE
 
-STATE_MENU         = 'menu'
-STATE_LEVEL_SELECT = 'level_select'
-STATE_PLAYING      = 'playing'
-STATE_PAUSED       = 'paused'
-STATE_TRANSITION   = 'transition'
-STATE_DYING        = 'dying'
-STATE_DEAD         = 'dead'
-STATE_WIN          = 'win'
-STATE_EXIT_CONFIRM = 'exit_confirm'
+STATE_MENU           = 'menu'
+STATE_LEVEL_SELECT   = 'level_select'
+STATE_PLAYING        = 'playing'
+STATE_TRANSITION     = 'transition'
+STATE_DYING          = 'dying'
+STATE_DEAD           = 'dead'
+STATE_WIN            = 'win'
+STATE_EXIT_CONFIRM   = 'exit_confirm'
+STATE_INTRO_CUTSCENE = 'intro_cutscene'
+STATE_MID_CUTSCENE   = 'mid_cutscene'
 
 _FONT_PATH = os.path.normpath(
     os.path.join(os.path.dirname(__file__), 'assests', 'sprites',
@@ -212,6 +215,8 @@ def main():
     menu_cursor       = 0   # 0 = Play Game, 1 = Select Level
     level_cursor      = 0   # 0 = L1, 1 = L2, 2 = L3
     exit_confirm_prev_state = STATE_MENU
+    cutscene          = None   # The active CutsceneManager (None when not in a cutscene)
+    show_insane_prompt = False # After mid cutscene, show the INSANE mode offer?
 
     # Cheat codes
     CHEAT_OXYGEN = (pygame.K_9, pygame.K_l, pygame.K_9, pygame.K_l, pygame.K_o)
@@ -226,6 +231,13 @@ def main():
         dt = min(dt, 0.05)
         elapsed += dt
 
+        # ── Track "just pressed" keys ─────────────────────────────────────────
+        # This set captures keys that were PRESSED this exact frame (not held).
+        # We build it from KEYDOWN events and pass it to the cutscene system.
+        # WHY: The cutscene engine needs "tap" input (press → release) so that
+        # holding down SPACE doesn't skip 30 lines in one frame.
+        just_pressed = set()
+
         # ── Event handling ────────────────────────────────────────────────────
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -237,6 +249,9 @@ def main():
                     pygame.quit(); sys.exit()
 
             if event.type == pygame.KEYDOWN:
+                # Record this key press for the cutscene system (just_pressed set)
+                just_pressed.add(event.key)
+
                 # ── Exit confirmation ──────────────────────────────────────────
                 if state == STATE_EXIT_CONFIRM:
                     if event.key == pygame.K_y:
@@ -267,12 +282,10 @@ def main():
                         menu_cursor = (menu_cursor + 1) % 2
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         if menu_cursor == 0:
-                            # Play Game → start from Level 1
+                            # Play Game → show intro cutscene first, then Level 1
                             current_level = 1
-                            level, camera, player, enemies, particles, comets, comet_timer = \
-                                _load_level(current_level, audio)
-                            oxygen_beep_timer = oxygen_leak_timer = 0.0
-                            state = STATE_PLAYING
+                            cutscene = CutsceneManager(INTRO_CUTSCENE, audio)
+                            state = STATE_INTRO_CUTSCENE
                         else:
                             state = STATE_LEVEL_SELECT
 
@@ -402,6 +415,12 @@ def main():
                 if current_level == 1:
                     trans_timer = 1.8
                     state = STATE_TRANSITION
+                elif current_level == 2:
+                    # Level 2 complete → play mid cutscene, then offer INSANE mode
+                    audio.stop_music()
+                    cutscene = CutsceneManager(MID_CUTSCENE, audio)
+                    show_insane_prompt = False
+                    state = STATE_MID_CUTSCENE
                 else:
                     audio.stop_music()
                     state = STATE_WIN
@@ -597,46 +616,67 @@ def main():
 
         # ── WIN ───────────────────────────────────────────────────────────────
         elif state == STATE_WIN:
-            screen.fill((4, 4, 28))
-            if current_level < 3:
-                sub_msg = "R - Play again   |   3 - Try INSANE mode   |   M - Main Menu"
+            if show_insane_prompt and last_frame:
+                screen.blit(last_frame, (0, 0))
+                _draw_overlay(screen, "INSANE  MODE?", (255, 100, 100), font_big,
+                              "The alien mothership awaits...  Y  -  Yes      N  -  No      M  -  Menu",
+                              font_small, (200, 200, 200))
+                if keys[pygame.K_y]:
+                    current_level = 3
+                    level, camera, player, enemies, particles, comets, comet_timer = \
+                        _load_level(current_level, audio)
+                    oxygen_beep_timer = oxygen_leak_timer = 0.0
+                    show_insane_prompt = False
+                    last_frame = None
+                    state = STATE_PLAYING
+                elif keys[pygame.K_n]:
+                    show_insane_prompt = False
+                    last_frame = None
+                elif keys[pygame.K_m]:
+                    show_insane_prompt = False
+                    last_frame = None
+                    menu_cursor = 0
+                    state = STATE_MENU
             else:
-                sub_msg = "You conquered INSANE!   R - Play again   |   M - Main Menu"
-            _draw_overlay(screen, "YOU  ESCAPED!", (100, 255, 200), font_mid,
-                          sub_msg, font_small)
-            if current_level == 3:
-                cheat_line_1 = font_small.render(
-                    "Have fun with these cheat codes!",
-                    True, (160, 160, 160)
-                )
-                screen.blit(cheat_line_1, (WINDOW_WIDTH // 2 - cheat_line_1.get_width() // 2, 535))
+                screen.fill((4, 4, 28))
+                if current_level < 3:
+                    sub_msg = "R - Play again   |   3 - Try INSANE mode   |   M - Menu   |   ESC - Quit"
+                else:
+                    sub_msg = "You conquered INSANE!   R - Play again   |   M - Menu   |   ESC - Quit"
+                _draw_overlay(screen, "YOU  ESCAPED!", (100, 255, 200), font_mid,
+                              sub_msg, font_small)
+                if keys[pygame.K_r]:
+                    level, camera, player, enemies, particles, comets, comet_timer = \
+                        _load_level(current_level, audio)
+                    oxygen_beep_timer = oxygen_leak_timer = 0.0
+                    audio.start_music(current_level)
+                    state = STATE_PLAYING
+                elif keys[pygame.K_3] and current_level < 3:
+                    current_level = 3
+                    level, camera, player, enemies, particles, comets, comet_timer = \
+                        _load_level(current_level, audio)
+                    oxygen_beep_timer = oxygen_leak_timer = 0.0
+                    state = STATE_PLAYING
+                elif keys[pygame.K_m]:
+                    menu_cursor = 0
+                    state       = STATE_MENU
 
-                cheat_line_2 = font_small.render(
-                    "wxwxs",
-                    True, (160, 160, 160)
-                )
-                screen.blit(cheat_line_2, (WINDOW_WIDTH // 2 - cheat_line_2.get_width() // 2, 565))
+        elif state == STATE_INTRO_CUTSCENE or state == STATE_MID_CUTSCENE:
+            cutscene.update(dt, just_pressed)
 
-                cheat_line_3 = font_small.render(
-                    "9l9lo",
-                    True, (160, 160, 160)
-                )
-                screen.blit(cheat_line_3, (WINDOW_WIDTH // 2 - cheat_line_3.get_width() // 2, 595))
-            if keys[pygame.K_r]:
-                level, camera, player, enemies, particles, comets, comet_timer = \
-                    _load_level(current_level, audio)
-                oxygen_beep_timer = oxygen_leak_timer = 0.0
-                audio.start_music(current_level)
-                state = STATE_PLAYING
-            elif keys[pygame.K_3] and current_level < 3:
-                current_level = 3
-                level, camera, player, enemies, particles, comets, comet_timer = \
-                    _load_level(current_level, audio)
-                oxygen_beep_timer = oxygen_leak_timer = 0.0
-                state = STATE_PLAYING
-            elif keys[pygame.K_m]:
-                menu_cursor = 0
-                state       = STATE_MENU
+            if cutscene:
+                cutscene.draw(screen)
+
+            if cutscene and cutscene.finished:
+                if state == STATE_INTRO_CUTSCENE:
+                    level, camera, player, enemies, particles, comets, comet_timer = \
+                        _load_level(current_level, audio)
+                    oxygen_beep_timer = oxygen_leak_timer = 0.0
+                    state = STATE_PLAYING
+                elif state == STATE_MID_CUTSCENE:
+                    show_insane_prompt = True
+                    last_frame = screen.copy()
+                    state = STATE_WIN
 
         # ── EXIT CONFIRM ──────────────────────────────────────────────────────
         elif state == STATE_EXIT_CONFIRM:

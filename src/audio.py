@@ -39,6 +39,16 @@ _SYNTH_FALLBACKS = {
     'explosion':      (65,  0.55, 0.65, 'square'),
     'level_complete': (523, 0.40, 0.50, 'sine'),
     'you_died':       (110, 0.40, 0.50, 'square'),
+
+    # ── Cutscene typing blip ──────────────────────────────────────────────
+    # A short high-pitched 'tick' sound played each time the typewriter
+    # reveals a new character in a cutscene dialog box.
+    #   Frequency 600Hz = bright, clicky tone (like a keyboard key)
+    #   Duration 0.03s  = very short (barely audible, just a tap sound)
+    #   Volume 0.15     = quiet (shouldn't be distracting)
+    #   Shape 'sine'    = smooth, no harsh buzz
+    # ──────────────────────────────────────────────────────────────────────
+    'typing':          (600, 0.03, 0.15, 'sine'),
 }
 
 
