@@ -18,6 +18,7 @@ from src.audio     import AudioManager
 STATE_MENU         = 'menu'
 STATE_LEVEL_SELECT = 'level_select'
 STATE_PLAYING      = 'playing'
+STATE_PAUSED       = 'paused'
 STATE_TRANSITION   = 'transition'
 STATE_DYING        = 'dying'
 STATE_DEAD         = 'dead'
@@ -98,6 +99,35 @@ def _draw_menu(surface, font_big, font_mid, font_small, elapsed, cursor):
     )
     surface.blit(hint, (WINDOW_WIDTH // 2 - hint.get_width() // 2, 490))
 
+    instructions = font_small.render(
+        "How to Play:",
+        True, (100, 105, 140)
+    )
+    surface.blit(instructions, (WINDOW_WIDTH // 2 - instructions.get_width() // 2, 555))
+
+    move_hint = font_small.render(
+        "Move:  A / D   or   Left / Right",
+        True, (100, 105, 140)
+    )
+    surface.blit(move_hint, (WINDOW_WIDTH // 2 - move_hint.get_width() // 2, 585))
+
+    jump_hint = font_small.render(
+        "Jump:  W   /   Up   /   Space",
+        True, (100, 105, 140)
+    )
+    surface.blit(jump_hint, (WINDOW_WIDTH // 2 - jump_hint.get_width() // 2, 615))
+
+    goal_title = font_small.render(
+        "Objective:",
+        True, (100, 105, 140)
+    )
+    surface.blit(goal_title, (WINDOW_WIDTH // 2 - goal_title.get_width() // 2, 670))
+
+    goal_hint = font_small.render(
+        "Avoid hazards, collect blue oxygen orbs, and reach the exit to escape the moon!",
+        True, (100, 105, 140)
+    )
+    surface.blit(goal_hint, (WINDOW_WIDTH // 2 - goal_hint.get_width() // 2, 700))
 
 def _draw_level_select(surface, font_big, font_mid, font_small, elapsed, cursor):
     """Level select screen."""
@@ -219,12 +249,15 @@ def main():
                 if event.key == pygame.K_ESCAPE:
                     if state == STATE_LEVEL_SELECT:
                         state = STATE_MENU
-                    elif state in (STATE_MENU, STATE_PLAYING):
+                    elif state == STATE_MENU:
                         last_frame = screen.copy()
                         exit_confirm_prev_state = state
                         state = STATE_EXIT_CONFIRM
-                    else:
-                        pygame.quit(); sys.exit()
+                    elif state == STATE_PLAYING:
+                        last_frame = screen.copy()
+                        state = STATE_PAUSED
+                    elif state == STATE_PAUSED:
+                        state = STATE_PLAYING
 
                 # ── Menu navigation ───────────────────────────────────────────
                 elif state == STATE_MENU:
@@ -450,6 +483,47 @@ def main():
 
             draw_hud(screen, player, current_level)
 
+            pause_hint = font_small.render("ESC  -  Pause Menu", True, (150, 160, 210))
+            screen.blit(
+                pause_hint,
+                (WINDOW_WIDTH // 2 - pause_hint.get_width() // 2, 14)
+            )
+
+        # ── PAUSED ────────────────────────────────────────────────────────────
+        elif state == STATE_PAUSED:
+            if last_frame:
+                screen.blit(last_frame, (0, 0))
+
+            overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 190))
+            screen.blit(overlay, (0, 0))
+
+            paused = font_big.render("PAUSED", True, (255, 220, 80))
+            screen.blit(paused, (
+                WINDOW_WIDTH // 2 - paused.get_width() // 2,
+                WINDOW_HEIGHT // 2 - paused.get_height() // 2 - 24
+            ))
+
+            sub = font_small.render(
+                "R  -  Retry level     M  -  Main Menu     ESC  -  Resume",
+                True, GRAY
+            )
+            screen.blit(sub, (
+                WINDOW_WIDTH // 2 - sub.get_width() // 2,
+                WINDOW_HEIGHT // 2 + 28
+            ))
+
+            if keys[pygame.K_r]:
+                level, camera, player, enemies, particles, comets, comet_timer = \
+                    _load_level(current_level, audio)
+                oxygen_beep_timer = oxygen_leak_timer = 0.0
+                last_frame = None
+                state = STATE_PLAYING
+            elif keys[pygame.K_m]:
+                last_frame = None
+                menu_cursor = 0
+                state = STATE_MENU
+
         # ── TRANSITION ────────────────────────────────────────────────────────
         elif state == STATE_TRANSITION:
             level.draw_background(screen, camera.offset_x)
@@ -504,7 +578,7 @@ def main():
             screen.blit(you_died, (WINDOW_WIDTH  // 2 - you_died.get_width()  // 2,
                                    WINDOW_HEIGHT // 2 - you_died.get_height() // 2 - 24))
             sub = font_small.render(
-                "R  -  Retry level     M  -  Main Menu     ESC  -  Quit",
+                "R  -  Retry level     M  -  Main Menu",
                 True, GRAY
             )
             screen.blit(sub, (WINDOW_WIDTH // 2 - sub.get_width() // 2,
