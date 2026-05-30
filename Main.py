@@ -639,12 +639,20 @@ def main():
                     menu_cursor = 0
                     state = STATE_MENU
             else:
-                screen.fill((4, 4, 28))
+                # Show "WELCOME HOME" over Auren's house background
+                try:
+                    home_bg = pygame.image.load(
+                        os.path.join(os.path.dirname(__file__), 'assests', 'sprites', 'avatars', 'home.png')
+                    ).convert()
+                    home_bg = pygame.transform.scale(home_bg, (WINDOW_WIDTH, WINDOW_HEIGHT))
+                    screen.blit(home_bg, (0, 0))
+                except Exception:
+                    screen.fill((4, 4, 28))
                 if current_level < 3:
                     sub_msg = "R - Play again   |   3 - Try INSANE mode   |   M - Menu   |   ESC - Quit"
                 else:
                     sub_msg = "You conquered INSANE!   R - Play again   |   M - Menu   |   ESC - Quit"
-                _draw_overlay(screen, "YOU  ESCAPED!", (100, 255, 200), font_mid,
+                _draw_overlay(screen, "WELCOME  HOME", (100, 255, 200), font_big,
                               sub_msg, font_small)
                 if keys[pygame.K_r]:
                     level, camera, player, enemies, particles, comets, comet_timer = \
