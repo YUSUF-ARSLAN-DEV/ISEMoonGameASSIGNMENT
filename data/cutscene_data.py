@@ -83,32 +83,28 @@ SPEAKERS = {
 
 INTRO_CUTSCENE = [
     # ╔══════════════════════════════════════════════════════════════╗
-    # ║  SCENE 1 — Auren's House (emergency call)                   ║
+    # ║  SCENE 1 — Auren's House (minding his own business)         ║
     # ║  Background: home.png (Auren's home)                        ║
-    # ║  Story: Auren, an astronaut, gets an urgent distress call   ║
-    # ║  He's professional — this is his job, not a fantasy         ║
+    # ║  Story: Auren is off-duty, Spy bursts in with urgent news   ║
     # ╚══════════════════════════════════════════════════════════════╝
     ('home', [
-        # Auren gets the call — professional astronaut, just doing his job
-        ('auren', "Emergency beacon from the lunar station. Life support is failing."),
-        # He understands the stakes immediately (no "I wish something would happen")
-        ('auren', "I'm the closest astronaut on standby. Mission control is sending me up."),
+        ('auren', "Just another quiet night..."),
+        ('spy',   "Auren. The lunar station went dark. Everyone on board is unaccounted for."),
+        ('auren', "I was off-duty. What happened?"),
+        ('spy',   "No idea. That's why I'm here. You're the closest astronaut we've got."),
+        ('auren', "...Alright. Talk to me on the way."),
     ]),
 
     # ╔══════════════════════════════════════════════════════════════╗
-    # ║  SCENE 2 — Briefing with the Spy                            ║
+    # ║  SCENE 2 — Briefing                                         ║
     # ║  Background: home.png (same location)                       ║
-    # ║  Story: Spy delivers the full picture — station went dark   ║
+    # ║  Story: Spy fills in the details as Auren gears up          ║
     # ╚══════════════════════════════════════════════════════════════╝
     ('home', [
-        # Spy arrives with intel — no surprises, Auren was expecting him
-        ('spy',   "Auren. The situation is worse than we thought. The station went dark."),
-        # Auren responds like a pro, not a surprised civilian
-        ('auren', "What do you mean dark? What happened up there?"),
-        # Spy admits they don't know — raising tension
-        ('spy',   "We don't know. All communication cut two hours ago."),
-        # Auren takes charge — he knows his job
-        ('auren', "Alright. Prep the shuttle. I'll suit up."),
+        ('spy',   "Station went silent two hours ago. Life support is failing. No distress call."),
+        ('auren', "No distress call? That doesn't make sense."),
+        ('spy',   "Nothing about this makes sense. That's why we need you up there."),
+        ('auren', "Well, I'm not gonna find answers sitting here."),
     ]),
 
     # ╔══════════════════════════════════════════════════════════════╗
@@ -117,39 +113,23 @@ INTRO_CUTSCENE = [
     # ║  Story: Standard equipment briefing before launch            ║
     # ╚══════════════════════════════════════════════════════════════╝
     ('station', [
-        # Spy lists standard issue gear — establishes the tools
-        ('spy',   "Standard repair kit, oxygen for 72 hours, emergency beacon."),
-        # Spy explains the emergency protocol
-        ('spy',   "If anything goes wrong, you trigger that beacon and we pull you out."),
-        # Auren sums up the mission — simple, professional
-        ('auren', "Fix the station, check for survivors, get home. Simple."),
+        ('spy',   "Standard gear. Oxygen, beacon, tools. You know the drill."),
+        ('auren', "Check the station, figure out what happened, get home alive. Got it."),
     ]),
 
     # ╔══════════════════════════════════════════════════════════════╗
     # ║  SCENE 4 — Moon Landing (the trap)                          ║
     # ║  Background: moon_surface (starry sky)                      ║
-    # ║  Story: Auren arrives — station is empty, it was a trap     ║
-    # ║  The Moon spirit takes pity and helps him escape             ║
+    # ║  Story: Station is empty — it was a trap. Moon spirit helps ║
     # ╚══════════════════════════════════════════════════════════════╝
     ('moon_surface', [
-        # Auren realizes something is wrong immediately
-        ('auren', "The station is empty... but the equipment is still running. Where is everyone?"),
-        # The Moon speaks for the first time — surprising both Auren and the player
-        ('moon',  "Auren... can you hear me? I am the spirit of this world."),
-        # Auren's professional confusion — he trusts his instruments
-        ('auren', "Who said that? There's no one here."),
-        # Moon explains the trap with pity in her voice
-        ('moon',  "The ones who came before — they took your people. They set this beacon as a trap."),
-        # Moon's sorrow for the ones she couldn't save
-        ('moon',  "I could not warn them. But you... you still have time."),
-        # Auren snaps back to mission mode
-        ('auren', "Time for what?"),
-        # Moon offers help — the escape plan
-        ('moon',  "To escape. There is an old pod near the far ridge. I can guide you there."),
-        # Moon warns about the danger ahead
-        ('moon',  "The creatures will hunt you. But I will help where I can."),
-        # Auren accepts — no hesitation, survival mode
-        ('auren', "Then guide me. I'm not dying on this rock."),
+        ('auren', "The station's empty... Everything's running, but there's no one here."),
+        ('moon',  "Auren... I am the spirit of this world. You are in danger."),
+        ('auren', "Who's there?"),
+        ('moon',  "The beacon was a trap. Others came before you. They did not leave."),
+        ('auren', "Then I'm not sticking around to find out what happened to them."),
+        ('moon',  "The creatures are coming. I can guide you to an escape pod."),
+        ('auren', "Guide me. I'm getting off this rock."),
     ]),
 ]
 
@@ -158,36 +138,22 @@ INTRO_CUTSCENE = [
 # SECTION 3 — MID CUTSCENE (plays after Level 2 is completed)
 # ──────────────────────────────────────────────────────────────────────────────
 # This cutscene plays when the player finishes Level 2.
-# Story: Auren returns to Earth, Spy congratulates him, then reveals
-# there's ONE MORE mission — a suicide run against the alien mothership.
-# This leads to the choice: try INSANE mode (Level 3) or finish the game.
-#
-# WHY separate from INTRO? Because the two cutscenes play at completely
-# different times in the game loop, and they might be created with
-# different context (e.g. we might add variables later).
-# ──────────────────────────────────────────────────────────────────────────────
+# Story: Auren returns to Earth, Spy debriefs him.
+# The story ends here — no hooks to additional content.
 
 MID_CUTSCENE = [
     # ╔══════════════════════════════════════════════════════════════╗
     # ║  SCENE 1 — Back at the Secret Base                          ║
     # ║  Background: station.png (same as intro scene 3)             ║
-    # ║  Story: Victory celebration → surprise final mission         ║
+    # ║  Story: Auren returns — mission accomplished                 ║
     # ╚══════════════════════════════════════════════════════════════╝
     ('station', [
-        # Spy can't believe Auren made it back alive
-        ('spy',   "You made it. I can't believe you made it."),
-        # Auren reveals the truth — it was a deliberate trap
-        ('auren', "Barely. It was a trap from the start. They lured me there."),
-        # Spy admits they suspected but couldn't confirm
-        ('spy',   "We know. The mothership is sending one last signal."),
-        # Spy raises the stakes — Earth is now in danger
-        ('spy',   "If it reaches the hive, they'll know where Earth is."),
-        # Auren doesn't hesitate — he's already decided
-        ('auren', "Then I need to finish this."),
-        # Spy offers one last support run
-        ('spy',   "One last run. We'll drop you at the hot zone. Then you're done."),
-        # Auren accepts — determined, professional
-        ('auren', "Let's end this."),
+        ('spy',   "You're back. We thought we lost you."),
+        ('auren', "So did I. That station was a trap. Whatever took the crew is still out there."),
+        ('spy',   "We've locked down all deep-space beacons. If anything tries that again, we'll know."),
+        ('auren', "Good. Because I'm not going back up there."),
+        ('spy',   "Get some rest. You've done enough."),
+        ('auren', "Yeah. I think I have."),
     ]),
 ]
 

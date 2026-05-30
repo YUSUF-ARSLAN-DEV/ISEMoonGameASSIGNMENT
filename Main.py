@@ -147,7 +147,7 @@ def _draw_level_select(surface, font_big, font_mid, font_small, elapsed, cursor)
     levels = [
         ("LEVEL  1", "Moon Surface",              (170, 175, 200)),
         ("LEVEL  2", "Lunar Cavern",               (140, 90,  210)),
-        ("LEVEL  3", "Blood Moon    (INSANE)",      (210, 60,  60)),
+        ("LEVEL  3", "Bonus Mission",                (210, 60,  60)),
     ]
     for i, (name, desc, desc_col) in enumerate(levels):
         selected = (cursor == i)
@@ -217,7 +217,7 @@ def main():
     level_cursor      = 0   # 0 = L1, 1 = L2, 2 = L3
     exit_confirm_prev_state = STATE_MENU
     cutscene          = None   # The active CutsceneManager (None when not in a cutscene)
-    show_insane_prompt = False # After mid cutscene, show the INSANE mode offer?
+
 
     # Cheat codes
     CHEAT_OXYGEN = (pygame.K_9, pygame.K_l, pygame.K_9, pygame.K_l, pygame.K_o)
@@ -417,10 +417,8 @@ def main():
                     trans_timer = 1.8
                     state = STATE_TRANSITION
                 elif current_level == 2:
-                    # Level 2 complete → play mid cutscene, then offer INSANE mode
                     audio.stop_music()
                     cutscene = CutsceneManager(MID_CUTSCENE, audio)
-                    show_insane_prompt = False
                     state = STATE_MID_CUTSCENE
                 else:
                     audio.stop_music()
@@ -617,6 +615,7 @@ def main():
 
         # ── WIN ───────────────────────────────────────────────────────────────
         elif state == STATE_WIN:
+<<<<<<< HEAD
             if show_insane_prompt and last_frame:
                 screen.blit(last_frame, (0, 0))
                 _draw_overlay(screen, "INSANE  MODE?", (255, 100, 100), font_big,
@@ -638,37 +637,38 @@ def main():
                     last_frame = None
                     menu_cursor = 0
                     state = STATE_MENU
+=======
+            # Show "WELCOME HOME" over Auren's house background
+            try:
+                home_bg = pygame.image.load(
+                    os.path.join(os.path.dirname(__file__), 'assests', 'sprites', 'avatars', 'home.png')
+                ).convert()
+                home_bg = pygame.transform.scale(home_bg, (WINDOW_WIDTH, WINDOW_HEIGHT))
+                screen.blit(home_bg, (0, 0))
+            except Exception:
+                screen.fill((4, 4, 28))
+            if current_level < 3:
+                sub_msg = "R - Play again   |   3 - Try INSANE mode   |   M - Menu   |   ESC - Quit"
+>>>>>>> e1115544216e85a7e44dd111f65f3876cfe07249
             else:
-                # Show "WELCOME HOME" over Auren's house background
-                try:
-                    home_bg = pygame.image.load(
-                        os.path.join(os.path.dirname(__file__), 'assests', 'sprites', 'avatars', 'home.png')
-                    ).convert()
-                    home_bg = pygame.transform.scale(home_bg, (WINDOW_WIDTH, WINDOW_HEIGHT))
-                    screen.blit(home_bg, (0, 0))
-                except Exception:
-                    screen.fill((4, 4, 28))
-                if current_level < 3:
-                    sub_msg = "R - Play again   |   3 - Try INSANE mode   |   M - Menu   |   ESC - Quit"
-                else:
-                    sub_msg = "You conquered INSANE!   R - Play again   |   M - Menu   |   ESC - Quit"
-                _draw_overlay(screen, "WELCOME  HOME", (100, 255, 200), font_big,
-                              sub_msg, font_small)
-                if keys[pygame.K_r]:
-                    level, camera, player, enemies, particles, comets, comet_timer = \
-                        _load_level(current_level, audio)
-                    oxygen_beep_timer = oxygen_leak_timer = 0.0
-                    audio.start_music(current_level)
-                    state = STATE_PLAYING
-                elif keys[pygame.K_3] and current_level < 3:
-                    current_level = 3
-                    level, camera, player, enemies, particles, comets, comet_timer = \
-                        _load_level(current_level, audio)
-                    oxygen_beep_timer = oxygen_leak_timer = 0.0
-                    state = STATE_PLAYING
-                elif keys[pygame.K_m]:
-                    menu_cursor = 0
-                    state       = STATE_MENU
+                sub_msg = "You conquered INSANE!   R - Play again   |   M - Menu   |   ESC - Quit"
+            _draw_overlay(screen, "WELCOME  HOME", (100, 255, 200), font_big,
+                          sub_msg, font_small)
+            if keys[pygame.K_r]:
+                level, camera, player, enemies, particles, comets, comet_timer = \
+                    _load_level(current_level, audio)
+                oxygen_beep_timer = oxygen_leak_timer = 0.0
+                audio.start_music(current_level)
+                state = STATE_PLAYING
+            elif keys[pygame.K_3] and current_level < 3:
+                current_level = 3
+                level, camera, player, enemies, particles, comets, comet_timer = \
+                    _load_level(current_level, audio)
+                oxygen_beep_timer = oxygen_leak_timer = 0.0
+                state = STATE_PLAYING
+            elif keys[pygame.K_m]:
+                menu_cursor = 0
+                state       = STATE_MENU
 
         elif state == STATE_INTRO_CUTSCENE or state == STATE_MID_CUTSCENE:
             cutscene.update(dt, just_pressed)
@@ -683,8 +683,6 @@ def main():
                     oxygen_beep_timer = oxygen_leak_timer = 0.0
                     state = STATE_PLAYING
                 elif state == STATE_MID_CUTSCENE:
-                    show_insane_prompt = True
-                    last_frame = screen.copy()
                     state = STATE_WIN
 
         # ── EXIT CONFIRM ──────────────────────────────────────────────────────
