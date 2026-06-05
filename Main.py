@@ -232,6 +232,8 @@ def main():
         dt = min(dt, 0.05)
         elapsed += dt
 
+
+
         # ── Track "just pressed" keys ─────────────────────────────────────────
         # This set captures keys that were PRESSED this exact frame (not held).
         # We build it from KEYDOWN events and pass it to the cutscene system.
@@ -559,7 +561,7 @@ def main():
                 oxygen_leak_timer = 0.0
                 state = STATE_PLAYING
 
-        # ── DYING (Elden Ring YOU DIED animation) ─────────────────────────────
+        # ── DYING (Elden Ring YOU DIED animation LOLLLS LITERALLY PEAK YA2NI PEAK IS AN UNDERSTATEMENT ) ─────────────────────────────
         elif state == STATE_DYING:
             death_timer += dt
             if last_frame:
