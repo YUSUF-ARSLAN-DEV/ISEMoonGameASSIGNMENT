@@ -627,9 +627,9 @@ def main():
             except Exception:
                 screen.fill((4, 4, 28))
             if current_level < 3:
-                sub_msg = "R - Play again   |   3 - Try INSANE mode   |   M - Menu   |   ESC - Quit"
+                sub_msg = "R - Play again   |   3 - Try INSANE mode   |   M - Menu"
             else:
-                sub_msg = "You conquered INSANE!   R - Play again   |   M - Menu   |   ESC - Quit"
+                sub_msg = "You conquered INSANE!   R - Play again   |   M - Menu"
             _draw_overlay(screen, "WELCOME  HOME", (100, 255, 200), font_big,
                           sub_msg, font_small)
             if keys[pygame.K_r]:
