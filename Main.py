@@ -561,7 +561,7 @@ def main():
                 oxygen_leak_timer = 0.0
                 state = STATE_PLAYING
 
-        # ── DYING (Elden Ring YOU DIED animation LOLLLS LITERALLY PEAK YA2NI PEAK IS AN UNDERSTATEMENT ) ─────────────────────────────
+        # ── DYING (Elden Ring YOU DIED animation) ─────────────────────────────
         elif state == STATE_DYING:
             death_timer += dt
             if last_frame:
